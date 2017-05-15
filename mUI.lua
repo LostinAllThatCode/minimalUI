@@ -49,6 +49,8 @@ mUI:SetScript("OnEvent", function()
 			mUI_PrintMessage("Initializing minimal unitframes...")
 			mUI_ConfigInitialize()
 
+			SetCVar("Sound_SFXVolume", 0.01) -- IN DEVELOPEMENT MODE!!!!
+
 			for name in pairs(this.modules)
 			do
 				local module = this.modules[name]
@@ -73,7 +75,7 @@ mUI:SetScript("OnEvent", function()
 			end
 
 			this.gui = mUI_GenerateConfigFrame()
-			--this.gui:Hide()
+			this.gui:Hide()
 
 			local default_backdrop = { 
 				bgFile = "Interface\\AddOns\\minimalUI\\img\\Cross.tga", 

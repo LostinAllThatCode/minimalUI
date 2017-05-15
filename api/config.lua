@@ -135,7 +135,7 @@ function mUI_CopyTable(src)
 end
 
 function mUI_ConfigInitialize()
-	if not mui_global then
+	if not mui_global or false then   -- TODO: REMOVE IN RELEASE
 		mui_global = {}
 		mui_global["DEBUG"]  = {}
 		_mUI_SetVariable(mui_global["DEBUG"], "DEBUG", "BOOLEAN", true)
@@ -148,7 +148,7 @@ function mUI_ConfigInitialize()
     		["DRUID"] 	= { r = 1,    g = 0.49, b = 0.04, a = 1 },
     		["HUNTER"] 	= { r = 0.67, g = 0.83, b = 0.45, a = 1 },
     		["SHAMAN"] 	= { r = 0.14, g = 0.35, b = 1.0,  a = 1 },
-    		["PRIEST"] 	= { r = 1,    g = 1,    b = 1,    a = 1 },
+    		["PRIEST"] 	= { r = 0.85, g = 0.85, b = 0.85, a = 1 },
     		["WARLOCK"] = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
     		["PALADIN"] = { r = 0.96, g = 0.55, b = 0.73, a = 1 }
 			}
@@ -158,7 +158,7 @@ function mUI_ConfigInitialize()
 			{
     		{ r = 0.41, g = 0.8,  b = 0.94, a = 1 }, -- MANA
     		{ r = 0.8,  g = 0.2,  b = 0.2,  a = 1 }, -- RAGE
-    		{ r = 1, 	g = 0,    b = 1,    a = 1 }, -- FOCUS
+    		{ r = 1, 	g = 0.5,  b = 0.25, a = 1 }, -- FOCUS
     		{ r = 1, 	g = 0.96, b = 0.41, a = 1 }	 -- ENERGY
 			}
 		)	
@@ -184,11 +184,11 @@ function mUI_GenerateConfigFrame()
    	local inline_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
 		edgeFile = "", 
-		tile = false, tileSize = 0, edgeSize = 16, 
+		tile = false, tileSize = 0, edgeSize = 0, 
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
 
-	local mainframe  = mUI_CreateDefaultFrame(nil, "mConfigFrame", 600, 500, "DIALOG")
+	local mainframe  = mUI_CreateDefaultFrame(nil, "mConfigFrame", 800, 600, "DIALOG")
 	mainframe.tabs 	 = {}
 	mainframe:SetMovable(true)
 	mainframe:EnableMouse(true)
@@ -198,9 +198,10 @@ function mUI_GenerateConfigFrame()
 
 	mainframe.title = mUI_CreateDefaultFrame(mainframe, nil, 596, 18, "DIALOG", inline_backdrop)
 	mainframe.title:ClearAllPoints()
-	mainframe.title:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 2, -2)
+	mainframe.title:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 0, 0)
+	mainframe.title:SetPoint("BOTTOMRIGHT", mainframe, "TOPRIGHT", 0, -18)
 	mainframe.title:SetBackdropColor(0.20,0.20,0.20,1.00)
-	mainframe.title.text = mUI_FontString(mainframe.title, nil, 14, nil, " minimalUI", "CENTER", "LEFT")
+	mainframe.title.text = mUI_FontString(mainframe.title, nil, 12, nil, " minimalUI - configuration gui - v0.1 (beta)", "CENTER", "LEFT")
 
 	mainframe.close = mUI_CreateDefaultButton(mainframe.title, nil, "X", 32, 16, 12)
 	mainframe.close:ClearAllPoints()
@@ -243,7 +244,7 @@ function mUI_GenerateConfigFrame()
    	end)
 
    	local infoframe = mUI_CreateDefaultFrame(mainframe, "mConfigFrameFirstFrame", mainframe:GetWidth() -155, 200, "DIALOG", inline_backdrop)
-   	infoframe.info  = mUI_FontString(infoframe, nil, 12)
+   	infoframe.info  = mUI_FontString(infoframe, nil, 10)
    	infoframe.info:SetJustifyV("TOP")
    	infoframe.info:SetJustifyH("LEFT")
    	infoframe.info:SetText("Welcome to the minimalUI config gui.\n" ..
@@ -310,8 +311,17 @@ function mUI_GenerateConfigFrame()
 		table.insert(mainframe.tabs, frame)
 		tab_index_start = tab_index_start + 1
    	end
+	mainframe.scrollframe:SetScrollChild(infoframe)
 
-   	mainframe.scrollframe:SetScrollChild(infoframe)
+   	-- TODO: remove in release
+   	--[[
+   	infoframe:Hide()
+   	local tab = mainframe.tabs[#mainframe.tabs]
+   	tab:Show()
+	mainframe.scrollframe:SetScrollChild(tab)
+	]]--
+
+   	
 	return mainframe
 end
 
@@ -366,7 +376,7 @@ function mUI_CreateConfigItem(entry, parent, current_height, module)
 			if(final_height > 0)
 			then
 				item:SetHeight(final_height + 18)
-				result_height = group_height + 8
+				result_height = group_height
 			end
 		end
 	elseif(entry.vtype == "NUMBERFIELD")
@@ -427,7 +437,7 @@ function mUI_CreateConfigItemNumberfield(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end
@@ -458,60 +468,8 @@ function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
-	return current_y + 17
-end
-
-function mUI_CreateConfigItemBackdrop(var, parent, current_y, module)
-	local item_backdrop = { 
-		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
-		edgeFile = "", 
-		tile = false, tileSize = 0, edgeSize = 16, 
-		insets = { left = 0, right = 0, top = 0, bottom = 0 }
-	}
-
-	local internal_height = current_y
-
-	local bgfile = mUI_CreateDefaultEditbox(parent, var.value.bgFile, 300, 16, "TOP", "RIGHT")
-	bgfile:SetAutoFocus(false)
-	bgfile:SetBackdropColor(.12,.12,.12,1)
-	bgfile:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
-	bgfile:SetScript("OnEnterPressed", function() 
-		var.value.bgFile = this:GetText()
-		if(module) then module:VariableChanged(var) end
-		this:ClearFocus()
-	end)
-	local bgfile_label = mUI_CreateDefaultFrame(parent, nil, 75, 16, "DIALOG", item_backdrop)
-	bgfile_label:SetBackdropColor(.13,.13,.13,1)
-	bgfile_label:SetPoint("TOPLEFT", bgfile, "TOPLEFT", -76, 0)
-	bgfile_label.text = mUI_FontString(bgfile_label, nil, 10, nil, "Background Texture", "CENTER", "LEFT")
-	
-	current_y = current_y + 17
-	local edgefile = mUI_CreateDefaultEditbox(parent, var.value.edgeFile, 300, 16, "TOP", "RIGHT")
-	edgefile:SetAutoFocus(false)
-	edgefile:SetBackdropColor(.12,.12,.12,1)
-	edgefile:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
-	edgefile:SetScript("OnEnterPressed", function() 
-		var.value.edgeFile = this:GetText()
-		if(module) then module:VariableChanged(var) end
-		this:ClearFocus()
-	end)
-	local edgefile_label = mUI_CreateDefaultFrame(parent, nil, 75, 16, "DIALOG", item_backdrop)
-	edgefile_label:SetBackdropColor(.13,.13,.13,1)
-	edgefile_label:SetPoint("TOPLEFT", edgefile, "TOPLEFT", -76, 0)
-	edgefile_label.text = mUI_FontString(edgefile_label, nil, 10, nil, "Border Texture", "CENTER", "LEFT")
-
-
---[[
-	local item = mUI_CreateDefaultFrame(parent, nil, 0, 16, "DIALOG", item_backdrop)
-	item:ClearAllPoints()
-	item:SetBackdropColor(.13,.13,.13,1)
-	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, internal_height * -1)
-	item:SetPoint("BOTTOMRIGHT", edgefile, "BOTTOMLEFT", -1, 0)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
-	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
-]]--
 	return current_y + 17
 end
 
@@ -522,57 +480,7 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 		tile = false, tileSize = 0, edgeSize = 16, 
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
---[[
-	local highlightcolor = { r=0.78, g=0.29, b=0.00, a=1 }
-	local last_btn = nil
-	local BOOLEAN_TABLE = { "FALSE", "TRUE" }
-	local last_sel_btn = nil
-	for i, bool in ipairs(BOOLEAN_TABLE)
-	do
-		local btn  = mUI_CreateDefaultButton(parent, nil, bool, 65, 16, 10)
-		btn:ClearAllPoints()
-		if(bool == "TRUE") then
-			btn:SetBackdropColor(.12,.86,.12,1)
-		else
-			btn:SetBackdropColor(.86,.12,.12,1)
-		end
-		if(strupper(tostring(var.value)) == bool)
-		then
-			last_sel_btn = btn
-			btn:SetAlpha(1)
-		else
-			btn:SetAlpha(.25)
-		end
-		btn:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -16 - ((i-1) * 66), -1 * current_y)
-		btn:SetScript("OnClick", function ()
-			if(last_sel_btn ~= nil)
-			then
-				last_sel_btn:SetAlpha(.25)
-			end
-			if(bool == "TRUE")
-			then
-				var.value = true
-				if(module) then module:VariableChanged(var) end
-			else
-				var.value = false
-				if(module) then module:VariableChanged(var) end
-			end
-			
-			btn:SetAlpha(1)
-			last_sel_btn = this
-		end)
-		last_btn = btn
-	end
-	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
-	item:ClearAllPoints()
-	item:SetBackdropColor(.13,.13,.13,1)
-	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
-	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
-	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 
-]]--
 	local checkbox = mUI_CreateCheckButton(parent)
 	checkbox:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -16, -1 * current_y)
 	checkbox:SetBackdrop(item_backdrop)
@@ -591,7 +499,7 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", checkbox, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 
 	return current_y + 17
@@ -605,6 +513,9 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
 
+	local selected_color = { r=0.0, g=0.5, b=1.0, a=1 }
+	local normal_color   = { r=0.12, g=0.12, b=0.12, a=1 }
+
 	local highlightcolor = { r=0.78, g=0.29, b=0.00, a=1 }
 	local last_btn = parent
 	local STRATA_TABLE = { "BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG" }
@@ -616,11 +527,11 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 		btn:SetWidth(btn:GetTextWidth() + 20)
 		if(var.value == strata)
 		then
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
+			btn:SetBackdropColor(mUI_GetColor(selected_color))
 			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
 			last_sel_btn = btn
 		else
-			btn:SetBackdropColor(.12,.12,.12,1)
+			btn:SetBackdropColor(mUI_GetColor(normal_color))
 			btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
 		end
 		if(last_btn == parent) then
@@ -631,14 +542,14 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 		btn:SetScript("OnClick", function ()
 			if(last_sel_btn ~= nil)
 			then
-				last_sel_btn:SetBackdropColor(.12,.12,.12,1)
+				last_sel_btn:SetBackdropColor(mUI_GetColor(normal_color))
 				last_sel_btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
 			end
 			var.value = strata
 
 			if(module) then module:VariableChanged(var) end
 
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
+			btn:SetBackdropColor(mUI_GetColor(selected_color))
 			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
 			last_sel_btn = this
 		end)
@@ -650,7 +561,7 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end
@@ -663,6 +574,9 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
 
+	local selected_color = { r=0.0, g=0.5, b=1.0, a=1 }
+	local normal_color   = { r=0.12, g=0.12, b=0.12, a=1 }
+
 	local highlightcolor = { r=0.78, g=0.29, b=0.00, a=1 }
 	local last_btn = parent
 	local DYNAMIC_COLOR_TABLE = { "CUSTOM", "CLASS", "POWER" }
@@ -674,11 +588,11 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 		btn:SetWidth(btn:GetTextWidth() + 20)
 		if(var.value == dyncolor)
 		then
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
+			btn:SetBackdropColor(mUI_GetColor(selected_color))
 			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
 			last_sel_btn = btn
 		else
-			btn:SetBackdropColor(.12,.12,.12,1)
+			btn:SetBackdropColor(mUI_GetColor(normal_color))
 			btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
 		end
 		if(last_btn == parent) then
@@ -689,13 +603,13 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 		btn:SetScript("OnClick", function ()
 			if(last_sel_btn ~= nil)
 			then
-				last_sel_btn:SetBackdropColor(.12,.12,.12,1)
+				last_sel_btn:SetBackdropColor(mUI_GetColor(normal_color))
 				last_sel_btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
 			end
 			var.value = dyncolor
 			if(module) then module:VariableChanged(var) end
 
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
+			btn:SetBackdropColor(mUI_GetColor(selected_color))
 			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
 			last_sel_btn = this
 		end)
@@ -707,7 +621,7 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end
@@ -765,7 +679,7 @@ function mUI_CreateConfigItemFontStyle(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end
@@ -809,7 +723,7 @@ function mUI_CreateConfigItemColor(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", hex_editbox, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 12, nil, var.name, "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end

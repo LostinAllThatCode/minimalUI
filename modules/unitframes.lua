@@ -1,6 +1,9 @@
 local unitframes = mUI:RegisterModule("unitframes")
-local blizzard_ui_elements = { 	"PlayerFrame", "TargetFrame",
-								"PartyMemberFrame1", "PartyMemberFrame2", "PartyMemberFrame3", "PartyMemberFrame4" }
+local blizzard_ui_elements = { 	
+	"PlayerFrame", "TargetFrame",
+	"PartyMemberFrame1", "PartyMemberFrame2", 
+	"PartyMemberFrame3", "PartyMemberFrame4" 
+}
 
 unitframes.framelist = {}
 
@@ -16,7 +19,12 @@ local DEFAULT_BACKDROP_BORDERLESS = {
 	tile = false, tileSize = 0, edgeSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
 }
 
-
+local function mUI_UnitframesGetBuffs(self)
+	for slotindex, bufficon in ipairs(self.buffpanel.buffs) do
+		local buff = { UnitBuff(self.entity, slotindex) }
+		bufficon:SetTexture(buff[3] or "")		
+	end
+end
 
 local function mUI_UnitframesAttachConfig(self, frame_layout, bars_layout, custom_layout)
 	if(self.cfg == nil) then self.cfg = {} end
@@ -34,22 +42,27 @@ local function mUI_UnitFramesUpdateBars(self)
 	end
 	local health_text =  level .. self.entitydata.name .. " " .. self.entitydata.hp .. "|".. self.entitydata.hpmax
 
-	if(self.entitydata.isdead) then
-		self.hp.text:SetText( " " .. self.entitydata.name)
-		self.power.text:SetText( " DEAD " )
-	elseif(self.entitydata.isghost) then
-		self.hp.text:SetText( " " .. self.entitydata.name )
-		self.power.text:SetText( " GHOST" )
-	elseif(self.entitydata.disconnected) then
-		self.hp.text:SetText( " " .. self.entitydata.name )
-		self.power.text:SetText( " DISCONNECTED" )
-	else
-		self.hp.text:SetText( health_text )
-		if(self.power:GetHeight() >= self.power.text:GetStringHeight()) then 
-			self.power.text:SetText( " " .. self.entitydata.mp .. "|".. self.entitydata.mpmax)
+	if(mUI_GetVariableValueByName(unitframes, "MenuA|General|Configuration_Mode") == false) then
+		if(self.entitydata.isdead) then
+			self.hp.text:SetText( " " .. self.entitydata.name)
+			self.power.text:SetText( " DEAD " )
+		elseif(self.entitydata.isghost) then
+			self.hp.text:SetText( " " .. self.entitydata.name )
+			self.power.text:SetText( " GHOST" )
+		elseif(self.entitydata.disconnected) then
+			self.hp.text:SetText( " " .. self.entitydata.name )
+			self.power.text:SetText( " DISCONNECTED" )
 		else
-			self.power.text:SetText( " " )
+			self.hp.text:SetText( health_text )
+			if(self.power:GetHeight() >= self.power.text:GetStringHeight()-2) then 
+				self.power.text:SetText( " " .. self.entitydata.mp .. "|".. self.entitydata.mpmax)
+			else
+				self.power.text:SetText( " " )
+			end
 		end
+	else
+		self.hp.text:SetText( " NAME ")
+		self.power.text:SetText( " MANA " )
 	end
 
 	local hp_max_size = self:GetWidth()-4
@@ -73,72 +86,74 @@ local function mUI_UnitFramesUpdateBars(self)
 end
 
 local function mUI_UnitFramesUpdateBarColors(self)
-	if(self.cfg.bars["HPDynamicColoring"].value == "CLASS") then
+	if(self.cfg.bars["HP_Bar_Color_Mode"].value == "CLASS") then
 		classClr = mUI_GetClassColor(self.entity)
-		self.hp:SetBackdropColor( classClr.r, classClr.g, classClr.b, self.cfg.bars["HPColor"].value.a )
-	elseif(self.cfg.bars["HPDynamicColoring"].value == "POWER") then
+		self.hp:SetBackdropColor( classClr.r, classClr.g, classClr.b, self.cfg.bars["HP_Bar_Color"].value.a )
+	elseif(self.cfg.bars["HP_Bar_Color_Mode"].value == "POWER") then
 		powerClr = mUI_GetPowerColor(self.entity)
-		self.hp:SetBackdropColor( powerClr.r, powerClr.g, powerClr.b, self.cfg.bars["HPColor"].value.a )
+		self.hp:SetBackdropColor( powerClr.r, powerClr.g, powerClr.b, self.cfg.bars["HP_Bar_Color"].value.a )
 	else
-		self.hp:SetBackdropColor( mUI_GetColor(self.cfg.bars["HPColor"].value) )
+		self.hp:SetBackdropColor( mUI_GetColor(self.cfg.bars["HP_Bar_Color"].value) )
 	end
-	self.hp_deficit:SetBackdropColor( mUI_GetColor(self.cfg.bars["HPDeficitColor"].value) )
+	self.hp_deficit:SetBackdropColor( mUI_GetColor(self.cfg.bars["HP_Deficit_Bar_Color"].value) )
 
-	if(self.cfg.bars["MPDynamicColoring"].value == "CLASS") then
+	if(self.cfg.bars["MP_Bar_Color_Mode"].value == "CLASS") then
 		classClr = mUI_GetClassColor(self.entity)
-		self.power:SetBackdropColor( classClr.r, classClr.g, classClr.b, self.cfg.bars["MPColor"].value.a )
-	elseif(self.cfg.bars["MPDynamicColoring"].value == "POWER") then
+		self.power:SetBackdropColor( classClr.r, classClr.g, classClr.b, self.cfg.bars["MP_Bar_Color"].value.a )
+	elseif(self.cfg.bars["MP_Bar_Color_Mode"].value == "POWER") then
 		powerClr = mUI_GetPowerColor(self.entity)
-		self.power:SetBackdropColor( powerClr.r, powerClr.g, powerClr.b, self.cfg.bars["MPColor"].value.a )
+		self.power:SetBackdropColor( powerClr.r, powerClr.g, powerClr.b, self.cfg.bars["MP_Bar_Color"].value.a )
 	else
-		self.power:SetBackdropColor( mUI_GetColor(self.cfg.bars["MPColor"].value) )
+		self.power:SetBackdropColor( mUI_GetColor(self.cfg.bars["MP_Bar_Color"].value) )
 	end
-	self.power_deficit:SetBackdropColor( mUI_GetColor(self.cfg.bars["MPDeficitColor"].value) )
+	self.power_deficit:SetBackdropColor( mUI_GetColor(self.cfg.bars["MP_Deficit_Bar_Color"].value) )
 end
 
 local function mUI_UnitFramesFullUpdate(self)
 	self:SetFrameStrata(self.cfg.custom["Strata"].value)
-	self:SetWidth(self.cfg.custom["Width"].value)
-	self:SetHeight(self.cfg.custom["Height"].value)
+	self:SetWidth(self.cfg.custom["Frame_Width"].value)
+	self:SetHeight(self.cfg.custom["Frame_Height"].value)
 	self:SetBackdrop(DEFAULT_BACKDROP)
-	self:SetBackdropColor(mUI_GetColor(self.cfg.frame["BGColor"].value))
-	self:SetBackdropBorderColor(mUI_GetColor(self.cfg.frame["BorderColor"].value))
+	self:SetBackdropColor(mUI_GetColor(self.cfg.frame["BG_Color"].value))
+	self:SetBackdropBorderColor(mUI_GetColor(self.cfg.frame["Border_Color"].value))
 
-	self.hp:SetHeight(self.cfg.custom["HP_Bar"].value)
+	self.hp:SetHeight(self.cfg.custom["HP_Bar_Height"].value)
 	self.hp:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.hp:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
-	self.hp.text:SetTextColor(mUI_GetColor(self.cfg.bars["HPTextColor"].value))
-	local font_mod = self.cfg.bars["HPFontStyle"].value or ""
-	if(font_mod == "NONE") then font_mod = "" end
-	self.hp.text:SetFont(self.cfg.bars["HPFont"].value, self.cfg.bars["HPFontSize"].value, font_mod)
+	self.hp.text:SetFont(self.cfg.bars["HP_Font"].value, self.cfg.bars["HP_Font_Size"].value)
+	self.hp.text:SetTextColor(mUI_GetColor(self.cfg.bars["HP_Font_Color"].value))
+	self.hp.text:SetShadowColor(mUI_GetColor(self.cfg.bars["HP_Font_Shadow_Color"].value))
 
-	self.hp_deficit:SetWidth(self.cfg.custom["Width"].value - 4)
-	self.hp_deficit:SetHeight(self.cfg.custom["HP_Bar"].value)
+	self.hp_deficit:SetWidth(self.cfg.custom["Frame_Width"].value - 4)
+	self.hp_deficit:SetHeight(self.cfg.custom["HP_Bar_Height"].value)
 	self.hp_deficit:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.hp_deficit:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
 
-	self.power:SetHeight(self.cfg.custom["MP_Bar"].value)	
+	self.power:SetHeight(self.cfg.custom["MP_Bar_Height"].value)	
 	self.power:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.power:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
-	self.power.text:SetTextColor(mUI_GetColor(self.cfg.bars["MPTextColor"].value))
-	self.power.text:SetFont(self.cfg.bars["MPFont"].value, self.cfg.bars["MPFontSize"].value, "OUTLINE")
+	self.power.text:SetTextColor(mUI_GetColor(self.cfg.bars["MP_Font_Color"].value))
+	self.power.text:SetFont(self.cfg.bars["MP_Font"].value, self.cfg.bars["MP_Font_Size"].value)
+	self.power.text:SetShadowColor(mUI_GetColor(self.cfg.bars["MP_Font_Shadow_Color"].value))
 	
-	self.power_deficit:SetWidth(self.cfg.custom["Width"].value - 4)
-	self.power_deficit:SetHeight(self.cfg.custom["MP_Bar"].value)
+	self.power_deficit:SetWidth(self.cfg.custom["Frame_Width"].value - 4)
+	self.power_deficit:SetHeight(self.cfg.custom["MP_Bar_Height"].value)
 	self.power_deficit:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.power_deficit:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
 
 	if(self.rangecheck) then
-		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|PartyRangeCheckingIntervalMS") / 1000.0)
+		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|Rangecheck_PartyRaid_Interval") / 1000.0)
 	end
 
 	if(self.dtt) then 
-		self.dtt = mUI_GetVariableValueByName(unitframes, "MenuA|Performance|TargetOfTargetUpdateIntervalMS") / 1000.0
+		self.dtt = mUI_GetVariableValueByName(unitframes, "MenuA|Performance|Target_Of_Target_Update_Interval") / 1000.0
 	end
+
 	self:DoUpdate()
 end
 
 local function mUI_UnitFramesUpdate(self)
+	mUI_UnitframesGetBuffs(self)
 	self:GetEntityData()
 	self:UpdateBarColors()
 	self:UpdateBars()
@@ -166,7 +181,7 @@ local function mUI_UnitFramesSetRangeChecking(self, enabled, interval)
 
 		self.rangecheck.enabled = enabled or true
 		self.rangecheck.dt      = 0.0
-		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|PartyRangeCheckingIntervalMS") / 1000.0)
+		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|Rangecheck_PartyRaid_Interval") / 1000.0)
 
 		self:SetScript("OnUpdate", function (this, elapsed)
 			if(this.rangecheck.enabled) then
@@ -182,7 +197,7 @@ local function mUI_UnitFramesSetRangeChecking(self, enabled, interval)
 			end
 		end)
 	else
-		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|PartyRangeCheckingIntervalMS") / 1000.0)
+		self.rangecheck.dtt     = interval or ( mUI_GetVariableValueByName(unitframes, "MenuA|Performance|Rangecheck_PartyRaid_Interval") / 1000.0)
 	end
 end
 
@@ -248,6 +263,19 @@ function mUI_UnitframesInitialize(frame, entity, frame_layout, bars_layout, cust
 	frame.power.text:SetJustifyH("LEFT")
 	frame.power.text:SetJustifyV("TOP")
 
+	frame.buffpanel = mUI_CreateDefaultFrame(frame, nil, 100, 16, "DIALOG")
+	frame.buffpanel:SetPoint("BOTTOMLEFT", frame, "TOPLEFT")
+	frame.buffpanel:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT")
+	frame.buffpanel:SetBackdropColor(0,0,0,0)
+	frame.buffpanel:SetFrameLevel(4)
+	frame.buffpanel.buffs = {}
+	for i=1, 10 do	
+		frame.buffpanel.buffs[i] = frame.buffpanel:CreateTexture()
+		frame.buffpanel.buffs[i]:SetPoint("TOPLEFT", frame.buffpanel, "TOPLEFT", ((i-1) * 16)+1, 0)
+		frame.buffpanel.buffs[i]:SetHeight(16)
+		frame.buffpanel.buffs[i]:SetWidth(16)
+	end	
+
 	frame.GetEntityData   = mUI_UnitFramesGetEntityData
 	frame.UpdateBarColors = mUI_UnitFramesUpdateBarColors
 	frame.UpdateBars 	  = mUI_UnitFramesUpdateBars
@@ -270,62 +298,67 @@ function unitframes:OnLoadDefaults(config)
 		tile = false, tileSize = 0, edgeSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
 	}
 
-	mUI_SetVariable(self, "MenuA|General|Locked", 									"BOOLEAN", 			true)
-	mUI_SetVariable(self, "MenuA|General|ConfigurationMode", 						"BOOLEAN", 			false)
+	mUI_SetVariable(self, "MenuA|General|Locked", 										"BOOLEAN", 			true)
+	mUI_SetVariable(self, "MenuA|General|Configuration_Mode", 							"BOOLEAN", 			false) -- TODO: Make this a dropdown thing for None, Group, Raid
 
-	mUI_SetVariable(self, "MenuA|Performance|PartyRangeCheckingIntervalMS",			"NUMBERFIELD",		1000)
-	mUI_SetVariable(self, "MenuA|Performance|TargetOfTargetUpdateIntervalMS",		"NUMBERFIELD",		500)
+	mUI_SetVariable(self, "MenuA|Performance|Rangecheck_PartyRaid_Interval",			"NUMBERFIELD",		1000)
+	mUI_SetVariable(self, "MenuA|Performance|Target_Of_Target_Update_Interval",			"NUMBERFIELD",		500)
 
-	mUI_SetVariable(self, "MenuB|Background|Texture",			"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
-	mUI_SetVariable(self, "MenuB|Background|BorderTexture",		"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga")
-	mUI_SetVariable(self, "MenuB|Background|BGColor", 			"BGCOLOR",			{r=0.1, g=0.1, b=0.1, a=1.0})
-	mUI_SetVariable(self, "MenuB|Background|BorderColor", 		"BORDERCOLOR", 		{r=1.0, g=0.0, b=1.0, a=0.0})
+	mUI_SetVariable(self, "MenuB|Background|Border_Color", 				"BORDERCOLOR", 		{r=1.0, g=0.0, b=1.0, a=0.0})
+	mUI_SetVariable(self, "MenuB|Background|Border_Texture",			"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga")
+	mUI_SetVariable(self, "MenuB|Background|BG_Color", 					"BGCOLOR",			{r=0.1, g=0.1, b=0.1, a=1.0})
+	mUI_SetVariable(self, "MenuB|Background|BG_Texture",				"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
 
-	mUI_SetVariable(self, "MenuC|StatusBar|Texture", 			"TEXTURE",			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
-	mUI_SetVariable(self, "MenuC|StatusBar|HPFont",				"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
-	mUI_SetVariable(self, "MenuC|StatusBar|HPFontStyle",		"FONTSTYLE",		"OUTLINE")
-	mUI_SetVariable(self, "MenuC|StatusBar|HPFontSize",			"NUMBERFIELD",		10)
-	mUI_SetVariable(self, "MenuC|StatusBar|HPTextColor",		"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|HPColor", 			"BGCOLOR",			{r=1.0, g=0.0, b=0.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|HPDeficitColor", 	"BGCOLOR",			{r=1.0, g=0.0, b=1.0, a=0.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MPFont",				"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
-	mUI_SetVariable(self, "MenuC|StatusBar|MPFontSize",			"NUMBERFIELD",		10)
-	mUI_SetVariable(self, "MenuC|StatusBar|MPTextColor",		"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MPColor", 			"BGCOLOR",			{r=1.0, g=0.0, b=0.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MPDeficitColor", 	"BGCOLOR",			{r=1.0, g=0.0, b=1.0, a=0.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|HPDynamicColoring",	"DYNAMIC_COLOR",	"CLASS")
-	mUI_SetVariable(self, "MenuC|StatusBar|MPDynamicColoring",	"DYNAMIC_COLOR",	"POWER")
+	mUI_SetVariable(self, "MenuC|StatusBar|BG_Texture", 				"TEXTURE",			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
 	
-	mUI_SetVariable(self, "MenuD|Player|HP_Bar",	 			"NUMBERFIELD", 		45)
-	mUI_SetVariable(self, "MenuD|Player|MP_Bar",	 			"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuD|Player|Width",		 			"NUMBERFIELD", 		180)
-	mUI_SetVariable(self, "MenuD|Player|Height",				"NUMBERFIELD", 		62)
-	mUI_SetVariable(self, "MenuD|Player|Strata", 				"STRATA", 			"LOW")
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Bar_Color", 				"BGCOLOR",			{r=1.0, g=0.0, b=0.0, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Bar_Color_Mode",			"DYNAMIC_COLOR",	"CLASS")
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Deficit_Bar_Color", 		"BGCOLOR",			{r=1.0, g=0.0, b=1.0, a=0.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font",					"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Color",				"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.6})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Size",				"NUMBERFIELD",		10)
 
-	mUI_SetVariable(self, "MenuE|Target|HP_Bar",	 			"NUMBERFIELD", 		45)
-	mUI_SetVariable(self, "MenuE|Target|MP_Bar",	 			"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuE|Target|Width", 				"NUMBERFIELD", 		180)
-	mUI_SetVariable(self, "MenuE|Target|Height",				"NUMBERFIELD", 		62)
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Bar_Color", 				"BGCOLOR",			{r=1.0, g=0.0, b=0.0, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Bar_Color_Mode",			"DYNAMIC_COLOR",	"POWER")
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Deficit_Bar_Color", 		"BGCOLOR",			{r=1.0, g=0.0, b=1.0, a=0.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font",					"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Color",				"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.6})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Size",				"NUMBERFIELD",		10)
+
+	mUI_SetVariable(self, "MenuD|Player|Frame_Height",			"NUMBERFIELD", 		62)	
+	mUI_SetVariable(self, "MenuD|Player|Frame_Width",			"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuD|Player|HP_Bar_Height",	 		"NUMBERFIELD", 		45)
+	mUI_SetVariable(self, "MenuD|Player|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
+	mUI_SetVariable(self, "MenuD|Player|Strata", 				"STRATA", 			"LOW")	
+
+	mUI_SetVariable(self, "MenuE|Target|MP_Bar_Height",			"NUMBERFIELD", 		12)
+	mUI_SetVariable(self, "MenuE|Target|HP_Bar_Height",			"NUMBERFIELD", 		45)
+	mUI_SetVariable(self, "MenuE|Target|Frame_Width", 			"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuE|Target|Frame_Height",			"NUMBERFIELD", 		62)
 	mUI_SetVariable(self, "MenuE|Target|Strata", 				"STRATA", 			"LOW")
 
-	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar",	 		"NUMBERFIELD", 		22)
-	mUI_SetVariable(self, "MenuF|TargetTarget|MP_Bar",	 		"NUMBERFIELD", 		3)
-	mUI_SetVariable(self, "MenuF|TargetTarget|Width", 			"NUMBERFIELD", 		180)
-	mUI_SetVariable(self, "MenuF|TargetTarget|Height",			"NUMBERFIELD", 		30)
+	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar_Height",	"NUMBERFIELD", 		22)
+	mUI_SetVariable(self, "MenuF|TargetTarget|MP_Bar_Height",	"NUMBERFIELD", 		3)
+	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Width", 	"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Height",	"NUMBERFIELD", 		30)
 	mUI_SetVariable(self, "MenuF|TargetTarget|Strata", 			"STRATA", 			"LOW")
 	
-	mUI_SetVariable(self, "MenuG|Party|HP_Bar",	 				"NUMBERFIELD", 		23)
-	mUI_SetVariable(self, "MenuG|Party|MP_Bar",	 				"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuG|Party|Width", 					"NUMBERFIELD", 		180)
-	mUI_SetVariable(self, "MenuG|Party|Height",					"NUMBERFIELD", 		40)
+	mUI_SetVariable(self, "MenuG|Party|HP_Bar_Height",			"NUMBERFIELD", 		23)
+	mUI_SetVariable(self, "MenuG|Party|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
+	mUI_SetVariable(self, "MenuG|Party|Frame_Width", 			"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuG|Party|Frame_Height",			"NUMBERFIELD", 		40)
 	mUI_SetVariable(self, "MenuG|Party|Strata", 				"STRATA", 			"LOW")
 end
 
 function unitframes:VariableChanged(var)
 	if(var == nil) then return end
+	
 	if(var.fqvn == "Menu0|Enabled") then
 		ReloadUI()
 	end
+
 	if(var.name == "Locked") then
 		if(var.value) then
 			mUI:SetGridView(false)
@@ -335,11 +368,10 @@ function unitframes:VariableChanged(var)
 		return nil
 	end	
 
-	if(var.name == "ConfigurationMode") then
+	if(var.name == "Configuration_Mode") then
 		local num_members = GetNumPartyMembers()
 		for i=1, 4 do			
 			local identifier = "party"..i
-			self[identifier]:DoUpdate()
 			if(var.value) then 
 				self[identifier]:Show() 
 			else
@@ -350,24 +382,19 @@ function unitframes:VariableChanged(var)
 				end
 			end
 		end
-		return nil
 	end
 
-	if(var.fqvn == "MenuB|Background|Texture") then
+	if(var.fqvn == "MenuB|Background|BG_Texture") then
 		DEFAULT_BACKDROP.bgFile = var.value
-	elseif(var.fqvn == "MenuB|Background|BorderTexture") then
+	elseif(var.fqvn == "MenuB|Background|Border_Texture") then
 		DEFAULT_BACKDROP.edgeFile = var.value
+	elseif(var.fqvn == "MenuC|StatusBar|BG_Texture") then
+		DEFAULT_BACKDROP_BORDERLESS.bgFile = var.value
 	end
 	for index, frame in ipairs(self.framelist) do frame:FullUpdate() end
 end
 
 function unitframes:OnEnable()
-	local default_backdrop = { 
-		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
-		edgeFile = "Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga", 
-		tile = false, tileSize = 0, edgeSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
-	}
-		
 	-- Disable all classic wow unitframes and unregister their events
 	for i, frame in ipairs(blizzard_ui_elements) do
 		local f = globals[frame]
@@ -388,13 +415,19 @@ function unitframes:OnEnable()
 			for i=1, 4 do
 				local identifier = "party"..i
 				self[identifier]:DoUpdate()
+				if(i > num_members) then
+					self[identifier]:Hide()
+				else
+					self[identifier]:Show()
+				end
 			end
 		end
 
 		if mUI_EventIsEither(event, "UNIT_FACTION", "UPDATE_FACTION", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MANA", "UNIT_MAXMANA", "UNIT_RAGE", "UNIT_NAXRAGE", "UNIT_ENERGY", "UNIT_MAXENERGY") then 
 			if(arg1 and self[arg1]) then self[arg1]:DoUpdate() end
 		end
-		if mUI_EventIsEither(event, "PLAYER_ENTERING_WORLD") then
+
+		if mUI_EventIsEither(event, "PLAYER_ENTERING_WORLD", "PLAYER_AURAS_CHANGED") then
 			self.player:DoUpdate()
 		end
 	end)
@@ -404,7 +437,8 @@ function unitframes:OnEnable()
 		"UNIT_HEALTH", "UNIT_MAXHEALTH",  "UNIT_MANA", "UNIT_MAXMANA", "UNIT_RAGE",
 	 	"UNIT_FACTION", "UPDATE_FACTION", 
 		"UNIT_NAXRAGE", "UNIT_ENERGY", "UNIT_MAXENERGY", "PLAYER_ENTERING_WORLD", 
-		"PARTY_MEMBERS_CHANGED", "PARTY_MEMBER_DISABLE", "PARTY_MEMBER_ENABLE"
+		"PARTY_MEMBERS_CHANGED", "PARTY_MEMBER_DISABLE", "PARTY_MEMBER_ENABLE",
+		"PLAYER_AURAS_CHANGED"
 	)
 
 
@@ -412,6 +446,7 @@ function unitframes:OnEnable()
 	self.player = CreateFrame("Button", "mUI"..self.name .. "player", UIParent, "SecureActionButtonTemplate")
 	self.player:SetPoint("CENTER", UIParent, "CENTER", -200, 0)
 	self.player:SetAttribute("unit", "player")
+	self.player:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
 	self.player.menu = function (self)
 		ToggleDropDownMenu(1, nil, getglobal("PlayerFrameDropDown"), "cursor")
 	end
@@ -450,7 +485,7 @@ function unitframes:OnEnable()
 	)
 	self.targettarget:SetScript("OnUpdate", function (this, elapsed)
 		if(this.dt == nil) then this.dt = 0.0 end
-		if(this.dtt == nil) then this.dtt = mUI_GetVariableValueByName(unitframes, "MenuA|Performance|TargetOfTargetUpdateIntervalMS") / 1000.0 end
+		if(this.dtt == nil) then this.dtt = mUI_GetVariableValueByName(unitframes, "MenuA|Performance|Target_Of_Target_Update_Interval") / 1000.0 end
 		this.dt = this.dt + elapsed
 		if(this.dt >= this.dtt) then
 			this:DoUpdate()
@@ -493,7 +528,6 @@ function unitframes:OnEnable()
 		)
 
 		if(i > num_members) then self[identifier]:Hide() end
-		table.insert(self.framelist, self[identifier])
 		party_relative = self[identifier]
 	end
 end

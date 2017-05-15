@@ -125,8 +125,8 @@ end
 function mUI_CreateDefaultFrame(parent, name, width, height, strata, backdrop, bg_color, border_color)
 	local default_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
-		edgeFile = "Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga", 
-		tile = false, tileSize = 0, edgeSize = 16, 
+		edgeFile = "", 
+		tile = false, tileSize = 0, edgeSize = 8, 
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
 	local frame = CreateFrame("Frame", name, parent or UIParent)
@@ -148,149 +148,6 @@ function mUI_CreateDefaultFrame(parent, name, width, height, strata, backdrop, b
 		frame:SetBackdropBorderColor(.6, .6, .6, 1)
 	end
 	return frame
-end
-
-function mUI_CreateDefaultUnitFrame(entity, name, width, height, strata, 
-									backdrop, backgroundcolor, bordercolor, bar_backdrop, 
-									hpcoloring, hpcolor, hpdeficitcolor, 
-									mpcoloring, mpcolor, mpdeficitcolor)
-
-	local SetBarColor = function(self)
-		if(self.coltype == "CLASS") then
-			self:SetBackdropColor( mUI_GetColor(mUI_GetClassColor(entity)) )
-		elseif self.coltype == "POWER" then
-			self:SetBackdropColor( mUI_GetColor(mUI_GetPowerColor(entity)) )
-		else
-			self:SetBackdropColor( mUI_GetColor(self.custom) )
-		end
-	end
-
-
-	local unitframe = CreateFrame("Button", name .. entity, UIParent)
-
-	unitframe.entitydata = {}
-	unitframe.UpdateEntityData = function(self)
-		self.entitydata.class 			= UnitClass(entity)
-		self.entitydata.classification  = UnitClassification(entity)
-		self.entitydata.hp 				= UnitHealth(entity) 
-		self.entitydata.hpmax			= UnitHealthMax(entity) or 100
-		self.entitydata.isdead 		 	= UnitIsDead(entity)
-		self.entitydata.isghost 		= UnitIsGhost(entity)
-		self.entitydata.mp 				= UnitMana(entity)
-		self.entitydata.mpmax			= UnitManaMax(entity)
-		self.entitydata.disconnected	= (self.entitydata.hpmax == 0 and self.entitydata.mpmax == 0)
-	end
-
-	unitframe:SetFrameStrata(strata or "LOW")
-	unitframe:SetWidth(width or 64)
-	unitframe:SetHeight(height or 64)
-	unitframe:SetPoint("CENTER", UIParent, "CENTER")
-	unitframe:SetBackdrop(backdrop)
-	unitframe:SetBackdropColor(mUI_GetColor(backgroundcolor))
-	unitframe:SetBackdropBorderColor(mUI_GetColor(bordercolor))
-	-- TODO: change this to something the user can toggle for configuration purpose
-	unitframe:SetMovable(true)
-	unitframe:EnableMouse(true)
-	unitframe:RegisterForClicks('LeftButtonUp', 'RightButtonUp')
-	unitframe:RegisterForDrag("LeftButton")
-	unitframe:SetScript("OnDragStart", function() this:StartMoving() end)
-	unitframe:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
-
--- Entity name label
-	unitframe.entity_name = mUI_FontString(unitframe, nil, 18, {r=1,g=1,b=1,a=1}, UnitName(strlower(entity)))
-
--- Healthbar
-	unitframe.hp_deficit = mUI_CreateDefaultFrame(unitframe, nil, 1, 16, strata, bar_backdrop, hpdeficitcolor)
-	unitframe.hp_deficit:ClearAllPoints()
-	unitframe.hp_deficit:SetPoint("TOPLEFT", unitframe, "TOPLEFT", 2, -2)
-	unitframe.hp_deficit:SetPoint("RIGHT", unitframe, "RIGHT", -2, 0)
-	unitframe.hp_deficit:SetFrameLevel(2)
-
-	unitframe.hp = mUI_CreateDefaultFrame(unitframe, nil, 1, 16, strata, bar_backdrop)
-	unitframe.hp:ClearAllPoints()
-	unitframe.hp:SetPoint("TOPLEFT", unitframe.hp_deficit, "TOPLEFT")
-	unitframe.hp:SetFrameLevel(3)
-	unitframe.hp.text = mUI_FontString(unitframe.hp, nil, 12, {r=0,g=0,b=0,a=1})
-	unitframe.hp:SetWidth( unitframe:GetWidth() - 4)
-	unitframe.hp.text:SetAllPoints(unitframe.hp_deficit)
-
-	unitframe.hp.coltype   = hpcoloring
-	unitframe.hp.custom    = hpcolor
-	unitframe.hp.SetColors = SetBarColor
-
--- Powerbar
- 	unitframe.power_deficit = mUI_CreateDefaultFrame(unitframe, nil, 1, 12,  strata, bar_backdrop, mpdeficitcolor)
-	unitframe.power_deficit:ClearAllPoints()
-	unitframe.power_deficit:SetPoint("TOPLEFT", unitframe.hp_deficit, "BOTTOMLEFT", 0, -1)
-	unitframe.power_deficit:SetPoint("RIGHT", unitframe, "RIGHT", -2, 0)
-	unitframe.power_deficit:SetFrameLevel(2)
-
-	unitframe.power = mUI_CreateDefaultFrame(unitframe, nil, 1, 12,  strata, bar_backdrop)
-	unitframe.power:ClearAllPoints()
-	unitframe.power:SetPoint("TOPLEFT", unitframe.power_deficit, "TOPLEFT")
-	unitframe.power:SetFrameLevel(3)
-	unitframe.power.text = mUI_FontString(unitframe.power, nil, 12, {r=0,g=0,b=0,a=1})
-	unitframe.power:SetWidth( unitframe:GetWidth() - 4)
-	unitframe.power.text:SetAllPoints(unitframe.power_deficit)
-
-	unitframe.power.coltype   = mpcoloring
-	unitframe.power.custom    = mpcolor
-	unitframe.power.SetColors = SetBarColor
-
--- Initialize self updating funtions and event handling	
-	unitframe.entity = strlower(entity)
-	unitframe.Update = function(self)
-		self:UpdateEntityData()
-		self:UpdateHealth()
-		self:UpdatePower()
-		self.hp:SetColors()
-		self.power:SetColors()
-	end
-
-	unitframe.UpdateHealth = function(self)
-		local health_max 	 				= self.entitydata.hpmax
-		local health_current 				= self.entitydata.hp
-		local health_percentage				= health_current/health_max
-
-		if(self.entitydata.isdead) then
-			self.hp.text:SetText( "DEAD" )
-		elseif(self.entitydata.isghost) then
-			self.hp.text:SetText( "GHOST" )
-		elseif(self.entitydata.disconnected) then
-			self.hp.text:SetText( "DISCONNECTED" )
-		else
-			self.hp.text:SetText( health_current .. "/".. health_max)
-		end
-
-		if(health_percentage == 0)
-		then
-			self.hp:SetWidth(-1)	
-		else
-			self.hp:SetWidth(health_percentage * (self:GetWidth()-4))	
-		end
-	end
-	unitframe.UpdatePower = function(self)
-		local power_max			= self.entitydata.mpmax
-		local power_current		= self.entitydata.mp
-		local power_percentage  = power_current/power_max
-		if(self.entitydata.isdead or self.entitydata.isghost or self.entitydata.disconnected)
-		then
-			self.power.text:SetText( "" )
-		else
-			self.power.text:SetText( power_current .. "/".. power_max)
-		end
-
-		if(power_percentage == 0)
-		then
-			self.power:SetWidth(-1)	
-		else
-			self.power:SetWidth(power_percentage * (self:GetWidth()-4))	
-		end
-	end
-
-	unitframe:Update()
-
-	return unitframe
 end
 
 function mUI_CreateDefaultButton(parent, name, text, width, height, fontsize, highlight_color)
@@ -406,17 +263,21 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
    picker:SetPoint("CENTER", parent)
    picker.callback = callback
 
-   local picker_current  = 20
+   local picker_current  = 0
    local picker_interval = 20
    picker.internal = function()
-   		if(picker_current >= picker_interval) then
+   		if(picker_current > picker_interval or picker_current == 1) then
       		local a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
       		picker:SetBackdropColor(r, g, b, a)
-      		if picker.callback then picker:callback(r, g, b, a) end
+      		if picker.callback then picker:callback(r, g, b, a) end		
       		picker_current = 0
       	else
       		picker_current = picker_current + 1
       	end
+   end
+   picker.cancel = function ()
+   		picker:SetBackdropColor(unpack(ColorPickerFrame.previousValues))
+   		if picker.callback then picker:callback(unpack(ColorPickerFrame.previousValues)) end
    end
    
    picker:SetScript("OnClick", function()
@@ -424,6 +285,8 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 		ColorPickerFrame.hasOpacity = true
 		ColorPickerFrame.opacity = a
 		ColorPickerFrame.func = this.internal
+		ColorPickerFrame.cancelFunc = this.cancel
+		ColorPickerFrame.previousValues = {r,g,b,a};
 		ColorPickerFrame.opacityFunc = this.internal
 		ColorPickerFrame:SetFrameStrata("FULLSCREEN_DIALOG")
 		ColorPickerFrame:Hide(); -- Need to run the OnShow handler.
@@ -446,7 +309,7 @@ function mUI_FontString(frame, font, size, color, text, justifiyV, justifiyH)
 	if(frame == nil) then return end
 	local fontstring = frame:CreateFontString(nil)
 	fontstring:SetAllPoints(frame)
-   	fontstring:SetFont(font or "Interface\\Addons\\minimalUI\\Fonts\\homespun.ttf", size or 10)
+   	fontstring:SetFont(font or "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf",site or  10)
 
 	if(color ~= nil)
 	then
@@ -454,7 +317,8 @@ function mUI_FontString(frame, font, size, color, text, justifiyV, justifiyH)
 	else
 		fontstring:SetTextColor(1,1,1,1)
 	end
-
+	fontstring:SetShadowColor(0,0,0,1)
+	fontstring:SetShadowOffset(1,-1)
    	fontstring:SetText(text or "")
    	if(justifiyV ~= nil and justifiyV ~= "") then fontstring:SetJustifyV(justifiyV) end
    	if(justifiyH ~= nil and justifiyH ~= "") then fontstring:SetJustifyH(justifiyH) end
@@ -469,7 +333,7 @@ function mUI_CreateCheckButton(parent)
 	tex:ClearAllPoints()
 	tex:SetPoint("TOPLEFT", checkbutton, "TOPLEFT", 3, -3)
 	tex:SetPoint("BOTTOMRIGHT", checkbutton, "BOTTOMRIGHT", -3, 3)
-	tex:SetVertexColor(.6,.6,.6,1)
+	tex:SetVertexColor(0.0,0.5,1.0,1)
 
 	local highlight = checkbutton:CreateTexture()
 	highlight:SetPoint("TOPLEFT", checkbutton, "TOPLEFT", 1, -1)
