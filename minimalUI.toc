@@ -1,0 +1,17 @@
+## Interface: 20400
+
+## Title: minimalUI
+## Notes: minimal user interface (currently only unitframes)
+## Author: Andreas Gaida
+## Version: 0.0.1
+## DefaultState: enabled
+## LoadOnDemand: 0
+## SavedVariables: mui_global
+## SavedVariablesPerCharacter: mui_config, mui_data
+
+api\global.lua
+api\config.lua
+
+mui.lua
+
+modules\unitframes.lua
