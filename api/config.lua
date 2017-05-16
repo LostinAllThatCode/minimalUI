@@ -18,15 +18,7 @@ local function _mUI_SetVariable(var, name, vtype, data, fqvn)
 	else
 		var.value  = data
 	end
-	if(fqvn) then
-		var.fqvn = fqvn
-		--[[
-		local at = strfind(fqvn, name)
-		if(at ~= nil and at ~= 1) then
-			var.fqvn = strsub(fqvn, 1, at-2)
-		end
-		]]--
-	end
+	if(fqvn) then var.fqvn = fqvn end
 end
 
 function mUI_SetVariable(module, name, vtype, data)
@@ -135,7 +127,7 @@ function mUI_CopyTable(src)
 end
 
 function mUI_ConfigInitialize()
-	if not mui_global or false then   -- TODO: REMOVE IN RELEASE
+	if not mui_global then   -- TODO: REMOVE IN RELEASE
 		mui_global = {}
 		mui_global["DEBUG"]  = {}
 		_mUI_SetVariable(mui_global["DEBUG"], "DEBUG", "BOOLEAN", true)
@@ -162,6 +154,8 @@ function mUI_ConfigInitialize()
     		{ r = 1, 	g = 0.96, b = 0.41, a = 1 }	 -- ENERGY
 			}
 		)	
+		mui_global["Pixel_Perfect_Mode"] = {}
+		_mUI_SetVariable(mui_global["Pixel_Perfect_Mode"], "Pixel_Perfect_Mode", "BOOLEAN", GetCVar("UseUIScale"))
 	else
 		mUI_DebugMessage("General mUF config already exists")
 	end
@@ -196,12 +190,28 @@ function mUI_GenerateConfigFrame()
 	mainframe:SetScript("OnDragStart", function() this:StartMoving() end)
 	mainframe:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
 
+	local function SetContent(scrollframe, tab_index)
+		local prev_tab  = scrollframe:GetScrollChild()
+		local tab 		= mainframe.tabs[tab_index]
+		if(tab ~= nil)
+		then
+			if(prev_tab ~= nil and prev_tab ~= tab) then 
+				prev_tab:Hide()
+			end
+			scrollframe:SetScrollChild(tab)
+			scrollframe:SetVerticalScroll(0)
+			tab:Show()
+		else
+			mUI_DebugError("Selected tab has no gui!")
+		end	
+	end
+
 	mainframe.title = mUI_CreateDefaultFrame(mainframe, nil, 596, 18, "DIALOG", inline_backdrop)
 	mainframe.title:ClearAllPoints()
 	mainframe.title:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 0, 0)
 	mainframe.title:SetPoint("BOTTOMRIGHT", mainframe, "TOPRIGHT", 0, -18)
 	mainframe.title:SetBackdropColor(0.20,0.20,0.20,1.00)
-	mainframe.title.text = mUI_FontString(mainframe.title, nil, 12, nil, " minimalUI - configuration gui - v0.1 (beta)", "CENTER", "LEFT")
+	mainframe.title.text = mUI_FontString(mainframe.title, nil, 14, nil, " minimalUI - configuration gui - v0.1 (beta)", "CENTER", "LEFT")
 
 	mainframe.close = mUI_CreateDefaultButton(mainframe.title, nil, "X", 32, 16, 12)
 	mainframe.close:ClearAllPoints()
@@ -209,26 +219,25 @@ function mUI_GenerateConfigFrame()
 	mainframe.close:SetPoint("TOPRIGHT", mainframe.title, "TOPRIGHT", -1, -1)
 	mainframe.close:SetScript("OnClick", function () mainframe:Hide() end)
 
+	mainframe.sizing = mUI_CreateDefaultButton(mainframe.title, nil, "<|>", 32, 16, 12)
+	mainframe.sizing:ClearAllPoints()
+	mainframe.sizing:SetBackdropColor(0.12,0.12,0.12,1.00)
+	mainframe.sizing:SetTextColor(0.0,0.50,0.75,1.00)
+	mainframe.sizing:SetPoint("TOPRIGHT", mainframe.close, "TOPLEFT", -1, 0)
+	mainframe.sizing:SetScript("OnClick", function () if(mainframe:GetHeight() == 600) then mainframe:SetHeight(250) else mainframe:SetHeight(600) mainframe.scrollframe:SetVerticalScroll(0) end end)
+
+	mainframe.help = mUI_CreateDefaultButton(mainframe.title, nil, "?", 32, 16, 12)
+	mainframe.help:ClearAllPoints()
+	mainframe.help:SetBackdropColor(0.12,0.12,0.12,1.00)
+	mainframe.help:SetTextColor(0.75,0.75,0.0,1.00)
+	mainframe.help:SetPoint("TOPRIGHT", mainframe.sizing, "TOPLEFT", -1, 0)
+	mainframe.help:SetScript("OnClick", function () SetContent(mainframe.scrollframe, 1)  end)
+
 	mainframe.global = mUI_CreateDefaultButton(mainframe, nil, "GLOBAL", 120, 18)
 	mainframe.global:SetBackdropBorderColor(.8, .8, .8, 1.0)
 	mainframe.global:ClearAllPoints()
 	mainframe.global:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 15, -25)
-	mainframe.global:SetScript("OnClick", function()
-		local tab_index = 2
-		local prev_tab  = mainframe.scrollframe:GetScrollChild()
-		local tab 		= mainframe.tabs[tab_index]
-		if(tab ~= nil)
-		then
-			if(prev_tab ~= nil and prev_tab ~= tab) then 
-				prev_tab:Hide()
-			end
-			mainframe.scrollframe:SetScrollChild(tab)
-			tab:Show()
-			mainframe.seltabid = tab_index
-		else
-			mUI_DebugError("Selected tab has no gui!")
-		end
-	end)
+	mainframe.global:SetScript("OnClick", function() SetContent(mainframe.scrollframe, 2) end)
 
 	mainframe.scrollframe = CreateFrame("ScrollFrame", "mConfigFrameScrollFrame", mainframe)
 	mainframe.scrollframe:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 150, -25)
@@ -244,31 +253,26 @@ function mUI_GenerateConfigFrame()
    	end)
 
    	local infoframe = mUI_CreateDefaultFrame(mainframe, "mConfigFrameFirstFrame", mainframe:GetWidth() -155, 200, "DIALOG", inline_backdrop)
-   	infoframe.info  = mUI_FontString(infoframe, nil, 10)
+   	infoframe.info  = mUI_FontString(infoframe, nil, 14)
    	infoframe.info:SetJustifyV("TOP")
    	infoframe.info:SetJustifyH("LEFT")
-   	infoframe.info:SetText("Welcome to the minimalUI config gui.\n" ..
-   		"Press a button on the left side to get to the specific settings tab.\n" ..
+   	infoframe.info:SetText("Welcome to the minimalUI configuration gui.\n" ..
+   		"Press one of the buttons on the left side to get to the specific settings tab.\n" ..
    		"\n" ..
-   		"If you have any bugs or suggestions please visit this website:\n"..
-   		"|cff888800http://www.tobemade.com|r")
-
+   		"If you have found any bugs or suggestions please visit the following website and create an issue!\n\n"..
+   		"|cff888800https://github.com/LostinAllThatCode/minimalUI|r\n\n" ..
+   		"TODO: More information here...")
    	table.insert(mainframe.tabs, infoframe)
 
 	local height = 1;
 	local frame = mUI_CreateDefaultFrame(scrollframe, "mConfigFrameGlobalFrame", mainframe:GetWidth() -155, height, "DIALOG", inline_backdrop)
 	frame:Hide()
-
 	for entry in pairsByKeys(mui_global)
 	do
-		height = mUI_CreateConfigItem(mui_global[entry], frame, height)
+		height = mUI_CreateConfigItem(mui_global[entry], frame, height, mUI)
 	end	
-
 	frame:SetHeight(height)
 	table.insert(mainframe.tabs, frame)
-
-
-   	--table.insert(mainframe.tabs, infoframe) -- TODO Global config frame
 
    	local tab_index_start = 3
    	local prev_button     = mainframe.global
@@ -279,20 +283,7 @@ function mUI_GenerateConfigFrame()
 		button:SetBackdropBorderColor(.8, .8, .8, 1.0)
 		button:ClearAllPoints()
 		button:SetPoint("TOPLEFT", prev_button, "BOTTOMLEFT", 0, -5)
-		button:SetScript("OnClick", function()
-			local tab_index = this.id
-			local prev_tab  = mainframe.scrollframe:GetScrollChild()
-			local tab 		= mainframe.tabs[tab_index]
-			if(tab ~= nil)
-			then
-				if(prev_tab ~= nil and prev_tab ~= tab) then prev_tab:Hide() end
-				mainframe.scrollframe:SetScrollChild(tab)
-				tab:Show()
-				mainframe.seltabid = tab_index
-			else
-				mUI_DebugError("Selected tab has no gui! TabIndex: "..tab_index)
-			end
-		end)
+		button:SetScript("OnClick", function() SetContent(mainframe.scrollframe, this.id) end)
 
 		local height = 1;
 		local frame = mUI_CreateDefaultFrame(scrollframe, "mConfigFrame"..strupper(module.name).."Frame", mainframe:GetWidth() -155, height, "DIALOG", inline_backdrop)
@@ -314,12 +305,13 @@ function mUI_GenerateConfigFrame()
 	mainframe.scrollframe:SetScrollChild(infoframe)
 
    	-- TODO: remove in release
-   	--[[
-   	infoframe:Hide()
-   	local tab = mainframe.tabs[#mainframe.tabs]
-   	tab:Show()
-	mainframe.scrollframe:SetScrollChild(tab)
-	]]--
+   	if(false) then
+   		infoframe:Hide()
+   		local tab = mainframe.tabs[#mainframe.tabs]
+   		tab:Show()
+		mainframe.scrollframe:SetScrollChild(tab)
+	end
+	-- ########################
 
    	
 	return mainframe
@@ -357,19 +349,18 @@ function mUI_CreateConfigItem(entry, parent, current_height, module)
 			end
 		else
 			local item = mUI_CreateDefaultFrame(parent, nil, parent:GetWidth()-22, 0, "DIALOG", item_backdrop)
-			item:SetBackdropColor(.15, .15, .15, 1)
+			item:SetBackdropColor(.2, .2, .2, 1)
 
 			item:ClearAllPoints()
 			item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_height * -1)
 			item:SetHeight(16)
-			item.text = mUI_FontString(item, nil, 10, nil, gsub(entry.name,"_", " "), "TOP", "LEFT")
-			item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 3, -3)
+			item.text = mUI_FontString(item, "Interface\\Addons\\minimalUI\\Fonts\\visitor2.ttf", 16, nil, gsub(entry.name,"_", " "), "TOP", "LEFT")
+			item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 6, 0)
 			item.text:SetTextColor(.9,.9,.2, 1)
 
 			local group_height = result_height + 18
-
 			for subvar in pairsByKeys(entry.value) do
-				group_height = mUI_CreateConfigItem(entry.value[subvar], parent, group_height, module)
+				group_height = mUI_CreateConfigItem(entry.value[subvar], parent, group_height, module, t)
 			end
 
 			local final_height = group_height - result_height - 18
@@ -420,7 +411,7 @@ function mUI_CreateConfigItemNumberfield(var, parent, current_y, module)
 
 	local value = mUI_CreateDefaultEditbox(parent, var.value, 100, 0, "TOP", "RIGHT")
 	value:SetNumeric(true)
-	value:SetBackdropColor(.12,.12,.12,1)
+	value:SetBackdropColor(.1,.1,.1,1)
 	value:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
 	value:SetHeight(16)
 	value:SetAutoFocus(false)
@@ -437,8 +428,9 @@ function mUI_CreateConfigItemNumberfield(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+	
 	return current_y + 17
 end
 
@@ -451,7 +443,7 @@ function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
 	}
 
 	local value = mUI_CreateDefaultEditbox(parent, var.value, 300, 0, "TOP", "RIGHT")
-	value:SetBackdropColor(.12,.12,.12,1)
+	value:SetBackdropColor(.1,.1,.1,1)
 	value:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
 	value:SetHeight(16)
 	value:SetAutoFocus(false)
@@ -465,11 +457,13 @@ function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
 	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
 	item:ClearAllPoints()
 	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+
 	return current_y + 17
 end
 
@@ -485,7 +479,7 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 	checkbox:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -16, -1 * current_y)
 	checkbox:SetBackdrop(item_backdrop)
 	checkbox:SetBackdropColor(.12,.12,.12,1)
-	checkbox:SetWidth(16)
+	checkbox:SetWidth(32)
 	checkbox:SetHeight(16)
 	checkbox:SetChecked(var.value)
 	checkbox:SetScript("OnClick", function ()
@@ -499,9 +493,9 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", checkbox, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
-
+	
 	return current_y + 17
 end
 
@@ -558,11 +552,13 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
 	item:ClearAllPoints()
 	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+	
 	return current_y + 17
 end
 
@@ -618,11 +614,13 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
 	item:ClearAllPoints()
 	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+	
 	return current_y + 17
 end
 
@@ -679,7 +677,7 @@ function mUI_CreateConfigItemFontStyle(var, parent, current_y, module)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	return current_y + 17
 end
@@ -720,10 +718,12 @@ function mUI_CreateConfigItemColor(var, parent, current_y, module)
 	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
 	item:ClearAllPoints()
 	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", hex_editbox, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 10, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+
 	return current_y + 17
 end

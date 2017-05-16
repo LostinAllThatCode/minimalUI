@@ -24,7 +24,7 @@ function mUI:SetGridView(enabled)
 	end
 end
 
-function mUI:EnablePixelPerfect(enabled)
+function mUI:SetPixelPerfect(enabled)
   if(enabled == true) then
     local resolution = GetCVar("gxResolution")
     for screenwidth, screenheight in string.gmatch(resolution, "(.+)x(.+)") do
@@ -37,19 +37,24 @@ function mUI:EnablePixelPerfect(enabled)
       UIParent:SetHeight(screenheight)
       UIParent:SetPoint("CENTER",0,0)
     end
+  else
+  	SetCVar("UseUIScale", 0)
   end
 end
+
+function mUI:VariableChanged(var)
+	if(var.name == "Pixel_Perfect_Mode") then
+		mUI:SetPixelPerfect(var.value)
+	end
+end
+
 
 mUI:SetScript("OnEvent", function()
 	if(event == "ADDON_LOADED")
 	then
 		if(arg1 == "minimalUI")
-		then
-			mUI:EnablePixelPerfect(true)
-			mUI_PrintMessage("Initializing minimal unitframes...")
+		then			
 			mUI_ConfigInitialize()
-
-			SetCVar("Sound_SFXVolume", 0.01) -- IN DEVELOPEMENT MODE!!!!
 
 			for name in pairs(this.modules)
 			do
@@ -57,7 +62,7 @@ mUI:SetScript("OnEvent", function()
 				if(module ~= nil)
 				then
 					-- Module initialization
-					if(mui_config[module.name] == nil or false)
+					if(mui_config[module.name] == nil)
 					then
 						mui_config[module.name] = {}
 						mUI_SetVariable(module, "Menu0|Enabled", "BOOLEAN", true)
@@ -77,17 +82,16 @@ mUI:SetScript("OnEvent", function()
 			this.gui = mUI_GenerateConfigFrame()
 			this.gui:Hide()
 
-			local default_backdrop = { 
-				bgFile = "Interface\\AddOns\\minimalUI\\img\\Cross.tga", 
-				edgeFile = "", 
-				tile = true, tileSize = 0, edgeSize = 8, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
-			}
-
+			-- Grid view
 			this.grid_view = CreateFrame("Frame")
 			this.grid_view:SetWidth(GetScreenWidth())
 			this.grid_view:SetHeight(GetScreenHeight())
 			this.grid_view:SetPoint("CENTER", UIParent, "CENTER", -4, -4)
-			this.grid_view:SetBackdrop(default_backdrop)
+			this.grid_view:SetBackdrop({ 
+				bgFile = "Interface\\AddOns\\minimalUI\\img\\Cross.tga", 
+				edgeFile = "", 
+				tile = true, tileSize = 0, edgeSize = 8, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
+			})
 			this.grid_view:SetFrameStrata("BACKGROUND")
 			this.grid_view:SetBackdropColor(0,1,0,1)
 			this.grid_view:SetAlpha(.25)

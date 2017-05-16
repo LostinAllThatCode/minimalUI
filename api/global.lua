@@ -68,7 +68,7 @@ function mUI_DebugError(message, debugstack_depth)
 end
 
 function mUI_DebugMessage(message)
-	--if(mui_global==nil or mUI_GetVariableValue(mui_global["DEBUG"]) == false) then return end
+	if(mui_global==nil or mUI_GetVariableValue(mui_global["DEBUG"]) == false) then return end
 	DEFAULT_CHAT_FRAME:AddMessage("|cffffff22DEBUG:|r |cffffff88" .. tostring(message))
 end
 
@@ -122,6 +122,25 @@ end
 -- General UI stuff
 -- 
 
+function mUI_AddHighlight(frame, highlight_color, botattach)
+	frame:EnableMouse(true)
+
+	local highlight = frame:CreateTexture()
+	highlight:SetHeight(1)
+	highlight:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 1, -1)
+	highlight:SetPoint("BOTTOMRIGHT", botattach or frame, "BOTTOMRIGHT", -1, 1)
+	if(highlight_color ~= nil)
+	then
+		highlight:SetTexture(highlight_color.r, highlight_color.g, highlight_color.b, highlight_color.a)
+	else
+		highlight:SetTexture(.5, .5, .5, .1)
+	end
+	highlight:Hide()
+
+	frame:SetScript("OnEnter", function () highlight:Show() end)
+	frame:SetScript("OnLeave", function () highlight:Hide() end)
+end
+
 function mUI_CreateDefaultFrame(parent, name, width, height, strata, backdrop, bg_color, border_color)
 	local default_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
@@ -151,7 +170,8 @@ function mUI_CreateDefaultFrame(parent, name, width, height, strata, backdrop, b
 end
 
 function mUI_CreateDefaultButton(parent, name, text, width, height, fontsize, highlight_color)
-   	local font = "Interface\\Addons\\minimalUI\\Fonts\\homespun.ttf"
+   	--local font = "Interface\\Addons\\minimalUI\\Fonts\\homespun.ttf"
+   	local font = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
 	local default_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
 		edgeFile = "", 
@@ -211,7 +231,7 @@ function mUI_CreateDefaultScrollframe(parent, name, width, height)
 end
 
 function mUI_CreateDefaultEditbox(parent, value, width, height, justifiyV, justifiyH)
-   	local font = "Interface\\Addons\\minimalUI\\Fonts\\homespun.ttf"
+   	local font = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
 	local default_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
 		edgeFile = "", 
@@ -222,7 +242,7 @@ function mUI_CreateDefaultEditbox(parent, value, width, height, justifiyV, justi
 	local editbox = CreateFrame("Editbox", nil, parent)
 	editbox:SetHeight(height or 18)
 	editbox:SetWidth(width or 64)
-	editbox:SetFont(font, 10)
+	editbox:SetFont(font, 12)
 	editbox:SetTextInsets(4,4,4,4) 
 	editbox:SetAutoFocus(false)
 	editbox:SetPoint("CENTER", parent, "CENTER", 0, 0)
@@ -260,27 +280,27 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 	else
 		picker:SetBackdropColor(1, 1, 1, 1)
 	end
-   picker:SetPoint("CENTER", parent)
-   picker.callback = callback
+   	picker:SetPoint("CENTER", parent)
+   	picker.callback = callback
 
-   local picker_current  = 0
-   local picker_interval = 20
-   picker.internal = function()
-   		if(picker_current > picker_interval or picker_current == 1) then
+   	local picker_interval = 10
+   	picker.internal = function()
+   		if(picker_current == nil) then picker_current = 0 end
+   		if(picker_current > picker_interval or picker.released_mouse) then
       		local a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
       		picker:SetBackdropColor(r, g, b, a)
-      		if picker.callback then picker:callback(r, g, b, a) end		
-      		picker_current = 0
+      		if picker.callback then picker:callback(r, g, b, a) end	
+      		picker_current = 0     	
       	else
       		picker_current = picker_current + 1
       	end
-   end
-   picker.cancel = function ()
+   	end
+   	picker.cancel = function ()
    		picker:SetBackdropColor(unpack(ColorPickerFrame.previousValues))
    		if picker.callback then picker:callback(unpack(ColorPickerFrame.previousValues)) end
-   end
+   	end
    
-   picker:SetScript("OnClick", function()
+   	picker:SetScript("OnClick", function()
 		local r,g,b,a = picker:GetBackdropColor()
 		ColorPickerFrame.hasOpacity = true
 		ColorPickerFrame.opacity = a
@@ -293,7 +313,17 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 		OpacitySliderFrame:SetValue(a)
 		ColorPickerFrame:Show();
 		ColorPickerFrame:SetColorRGB(r,g,b);
-   end)
+   	end)
+
+	if(firstInit == nil) then
+		firstInit = true
+		ColorPickerFrame:SetScript("OnMouseUp", function()
+			picker.released_mouse = true
+		end)
+		ColorPickerFrame:SetScript("OnMouseDown", function()
+			picker.released_mouse = false
+		end)
+	end
 
    	local highlight = picker:CreateTexture()
 	highlight:SetPoint("TOPLEFT", picker, "TOPLEFT", 1, -1)
@@ -306,10 +336,12 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 end
 
 function mUI_FontString(frame, font, size, color, text, justifiyV, justifiyH)
+	local deffont = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
+	--local font = "Interface\\Addons\\minimalUI\\Fonts\\visitor2.ttf"
 	if(frame == nil) then return end
 	local fontstring = frame:CreateFontString(nil)
 	fontstring:SetAllPoints(frame)
-   	fontstring:SetFont(font or "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf",site or  10)
+   	fontstring:SetFont(font or deffont, size or  10)
 
 	if(color ~= nil)
 	then
