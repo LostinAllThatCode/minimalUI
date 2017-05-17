@@ -1,5 +1,46 @@
 globals = getfenv(0)
 
+MUI_GLOBAL_FONT_TABLE = 
+{
+	"Interface\\AddOns\\minimalUI\\fonts\\8_Bit_Madness.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\alterebro.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\apple.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\Asai-Analogue.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\big_noodle_titling.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\BMSPA___.TTF",
+	"Interface\\AddOns\\minimalUI\\fonts\\capture.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\CaviarDreams.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\homespun.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\LiberationMono-Bold.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\LiberationMono-Regular.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\macromedia.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\ostrich.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\pixelade.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\pixelbold.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\pricedown bl.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\silkscreen.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\uni.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\upheavtt.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\visitor1.ttf",
+	"Interface\\AddOns\\minimalUI\\fonts\\visitor2.ttf"
+}
+
+MUI_GLOBAL_TEXTURE_TABLE = 
+{
+	"Interface\\AddOns\\minimalUI\\img\\Aluminium.tga",
+	"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga",
+	"Interface\\AddOns\\minimalUI\\img\\BantoBar.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Bars.tga",
+	"Interface\\AddOns\\minimalUI\\img\\BorderGlow.tga",
+	"Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Gloss.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Healbot.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Luna.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Otravi.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Smooth.tga",
+	"Interface\\AddOns\\minimalUI\\img\\Striped.tga"
+}
+
 function pairsByKeys (t, f)
     local a = {}
     for n in pairs(t) do table.insert(a, n) end
@@ -25,16 +66,25 @@ function mUI_RGBToHex(value)
 	while(value > 0) do
 		local index = math.fmod(value, 16) + 1
 		value = math.floor(value / 16)
-		hex = string.sub('0123456789ABCDEF', index, index) .. hex			
+		hex = string.sub('0123456789ABCDEF', index, index) .. hex
 	end
 	if(string.len(hex) == 0) then hex = '00' 
-	elseif(string.len(hex) == 1) then hex = '0' .. hex
+	elseif(string.len(hex) == 1) then hex = hex .. '0'
 	end
 	return hex
 end
 
 function mUI_HexFromColorTable(color_table) -- #ARGB
 	return format("#%s%s%s%s", 
+		mUI_RGBToHex(color_table.a * 255), 
+		mUI_RGBToHex(color_table.r * 255), 
+		mUI_RGBToHex(color_table.g * 255),
+		mUI_RGBToHex(color_table.b * 255)
+	)
+end
+
+function mUI_HexFromColorTableToString(color_table) -- #ARGB
+	return format("|c%s%s%s%s", 
 		mUI_RGBToHex(color_table.a * 255), 
 		mUI_RGBToHex(color_table.r * 255), 
 		mUI_RGBToHex(color_table.g * 255),
@@ -93,7 +143,7 @@ end
 
 function mUI_GetClassColor(target)
 	local _, class   = UnitClass(target)
-	local colortable = mUI_GetVariableValue(mui_global["ClassColors"])
+	local colortable = mui_global["ClassColors"].value
 	local color      = colortable[class]
 	if(color ~= nil)
 	then
@@ -102,7 +152,7 @@ function mUI_GetClassColor(target)
 		if(UnitIsEnemy("player", target)) then
 			return {r=0.72, g=0.0, b=0.0, a=1.0}
 		else
-			return {r=0.0, g=0.72, b=0.0, a=1.0}
+			return {r=.0, g=0.72, b=0.0, a=1.0}
 		end
 	end
 end
@@ -231,7 +281,7 @@ function mUI_CreateDefaultScrollframe(parent, name, width, height)
 end
 
 function mUI_CreateDefaultEditbox(parent, value, width, height, justifiyV, justifiyH)
-   	local font = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
+   	local font = "Interface\\Addons\\minimalUI\\Fonts\\LiberationMono-Regular.ttf"
 	local default_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
 		edgeFile = "", 
@@ -242,7 +292,7 @@ function mUI_CreateDefaultEditbox(parent, value, width, height, justifiyV, justi
 	local editbox = CreateFrame("Editbox", nil, parent)
 	editbox:SetHeight(height or 18)
 	editbox:SetWidth(width or 64)
-	editbox:SetFont(font, 12)
+	editbox:SetFont(font, 11)
 	editbox:SetTextInsets(4,4,4,4) 
 	editbox:SetAutoFocus(false)
 	editbox:SetPoint("CENTER", parent, "CENTER", 0, 0)
@@ -290,7 +340,7 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
       		local a, r, g, b = OpacitySliderFrame:GetValue(), ColorPickerFrame:GetColorRGB();
       		picker:SetBackdropColor(r, g, b, a)
       		if picker.callback then picker:callback(r, g, b, a) end	
-      		picker_current = 0     	
+      		picker_current = 0
       	else
       		picker_current = picker_current + 1
       	end
@@ -323,6 +373,13 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 		ColorPickerFrame:SetScript("OnMouseDown", function()
 			picker.released_mouse = false
 		end)
+		OpacitySliderFrame:SetScript("OnMouseUp", function()
+			--picker.released_mouse = true
+			picker_current = 1
+		end)
+		OpacitySliderFrame:SetScript("OnMouseDown", function()
+			picker.released_mouse = false
+		end)
 	end
 
    	local highlight = picker:CreateTexture()
@@ -336,12 +393,12 @@ function mUI_CreateColorPicker(parent, callback, width, height, initial_color)
 end
 
 function mUI_FontString(frame, font, size, color, text, justifiyV, justifiyH)
-	local deffont = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
-	--local font = "Interface\\Addons\\minimalUI\\Fonts\\visitor2.ttf"
+	--local deffont = "Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf"
+	local deffont = "Interface\\Addons\\minimalUI\\Fonts\\LiberationMono-Bold.ttf"
 	if(frame == nil) then return end
 	local fontstring = frame:CreateFontString(nil)
 	fontstring:SetAllPoints(frame)
-   	fontstring:SetFont(font or deffont, size or  10)
+   	fontstring:SetFont(font or deffont, 11)
 
 	if(color ~= nil)
 	then
@@ -375,13 +432,139 @@ function mUI_CreateCheckButton(parent)
 	return checkbutton
 end
 
-function mUI_ComboBox(parent)
-	local combobox = CreateButton("Button", nil, parent)
-	combobox:SetCheckedTexture("Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
-	local tex = combobox:GetCheckedTexture() 
-	tex:ClearAllPoints()
-	tex:SetPoint("TOPLEFT", combobox, "TOPLEFT", 3, -3)
-	tex:SetPoint("BOTTOMRIGHT", combobox, "BOTTOMRIGHT", -3, 3)
-	tex:SetVertexColor(1,1,0,1)
+
+function mUI_ComboBox(parent, combo_type, callback)
+	-- initialze a global set of dropdown menu items
+	if(MUI_COMBO_DROPDOWN == nil) then
+		MUI_COMBO_DROPDOWN = CreateFrame("Frame")
+		MUI_COMBO_DROPDOWN:SetBackdrop({ 
+			bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
+			edgeFile = "", 
+			tile = false, tileSize = 0, edgeSize = 16, 
+			insets = { left = 0, right = 0, top = 0, bottom = 0 }
+		})
+		MUI_COMBO_DROPDOWN:SetFrameStrata("DIALOG")
+		MUI_COMBO_DROPDOWN:SetFrameLevel(5)
+		MUI_COMBO_DROPDOWN:SetBackdropColor(0,0,0,1)
+		MUI_COMBO_DROPDOWN:SetScript("OnUpdate", function (this, elapsed)
+			if(this.dt == nil) then this.dt = 0 end
+			if(MouseIsOver(this) or MouseIsOver(this.PARENT)) then
+				this.dt = 0
+			else
+				this.dt = this.dt + elapsed
+				if(this.dt >= .25) then 
+					this:Hide()
+					this.dt = 0
+				end
+			end
+		end)
+
+		MUI_COMBO_DROPDOWN.FIELDS = {}
+		for index=1, 20 do
+			MUI_COMBO_DROPDOWN.FIELDS[index] = CreateFrame("Button", nil, MUI_COMBO_DROPDOWN)
+			MUI_COMBO_DROPDOWN.FIELDS[index].index = index
+			MUI_COMBO_DROPDOWN.FIELDS[index]:SetScript("OnClick", function (this, button)
+				if(MUI_COMBO_DROPDOWN.CALLBACK and MUI_COMBO_DROPDOWN._VALUES) then 
+					local value = MUI_COMBO_DROPDOWN._VALUES[this.index]
+					MUI_COMBO_DROPDOWN.CALLBACK(MUI_COMBO_DROPDOWN.PARENT, this.index, value) 
+				end
+				MUI_COMBO_DROPDOWN:Hide()
+				MUI_COMBO_DROPDOWN.dt = 0
+			end)
+
+			local highlight = MUI_COMBO_DROPDOWN.FIELDS[index]:CreateTexture()
+			highlight:SetPoint("TOPLEFT", MUI_COMBO_DROPDOWN.FIELDS[index], "TOPLEFT", 1, -1)
+			highlight:SetPoint("BOTTOMRIGHT", MUI_COMBO_DROPDOWN.FIELDS[index], "BOTTOMRIGHT", -1, 1)
+			highlight:SetTexture(.5, .5, .5, .1)
+
+			MUI_COMBO_DROPDOWN.FIELDS[index]:SetHighlightTexture(highlight)
+		end
+
+		MUI_COMBO_DROPDOWN:Hide()
+	end
+
+	local function MUI_COMBO_SET_VALUES(combobox, values, combo_type)
+		MUI_COMBO_DROPDOWN._VALUES = values
+		local height = 0
+		local last = MUI_COMBO_DROPDOWN
+		local offset = 0
+		for index, field in ipairs(MUI_COMBO_DROPDOWN.FIELDS) do
+			local value = values[index]
+			if(values[index]) then
+				field:SetPoint("TOPLEFT", last, "TOPLEFT", 0, offset)
+				field:SetPoint("TOPRIGHT", last, "TOPRIGHT", 0, offset)
+				if(combo_type == "FONT") then
+					field:SetNormalTexture("")
+					field:SetFont(value, combobox.value_height - 4)
+					local _,_,fontfile = strfind(value, "([^\\]+)[.]") 
+					if(fontfile) then field:SetText(fontfile) end
+				elseif(combo_type == "TEXTURE") then
+					field:SetFont("Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf", 12, "OUTLINE")
+					field:SetText("")
+					field:SetNormalTexture(value)
+					local _,_,texturefile = strfind(value, "([^\\]+)[.]") 
+					if(texturefile) then field:SetText(texturefile) end			
+				else
+					field:SetFont("Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf", 12)
+					field:SetText(value)
+				end
+				field:SetHeight(combobox.value_height)
+				field:Show()
+
+				height = height + combobox.value_height
+				last   = field
+				offset = -combobox.value_height
+			else
+				field:Hide()
+			end
+		end	
+		MUI_COMBO_DROPDOWN:SetHeight(height)
+	end
+
+	-- Where callback gets this parameters passed CALLBACK(self, index, value)
+	local function MUI_COMBO_SET_CALLBACK(parent, callback)
+		MUI_COMBO_DROPDOWN.CALLBACK = callback
+		MUI_COMBO_DROPDOWN.PARENT   = parent
+	end
+
+	local function MUI_COMBO_SET_BACKDROPCOLOR(r,g,b,a)
+		MUI_COMBO_DROPDOWN:SetBackdropColor(r,g,b,a-.05)
+	end
+
+	local function MUI_COMBO_SHOW(cbx)
+		MUI_COMBO_DROPDOWN:SetPoint("TOPLEFT", cbx, "BOTTOMLEFT")
+		MUI_COMBO_DROPDOWN:SetPoint("TOPRIGHT", cbx, "BOTTOMRIGHT")
+		MUI_COMBO_DROPDOWN:Show()
+	end
+
+	-----------------------------------------------------------------
+	
+	local combobox = CreateFrame("Button", nil, parent)
+	combobox:SetFont("Interface\\Addons\\minimalUI\\Fonts\\visitor1.ttf", 16, "OUTLINE")
+	combobox.callback = callback
+	combobox.combo_type = combo_type
+	combobox.SetValueHeight = function (self, height)
+		self.value_height = height
+	end
+	combobox:SetValueHeight(18)
+	combobox:SetBackdrop({ 
+		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
+		edgeFile = "", 
+		tile = false, tileSize = 0, edgeSize = 16, 
+		insets = { left = 0, right = 0, top = 0, bottom = 0 }
+	})
+	combobox:SetScript("OnClick", function ()
+		MUI_COMBO_SET_BACKDROPCOLOR(this:GetBackdropColor())
+		MUI_COMBO_SET_CALLBACK(this, this.callback)
+		if(this.combo_type == "FONT") then
+			MUI_COMBO_SET_VALUES(this, MUI_GLOBAL_FONT_TABLE, "FONT", this.value_height)
+		elseif(this.combo_type == "TEXTURE") then
+			MUI_COMBO_SET_VALUES(this, MUI_GLOBAL_TEXTURE_TABLE, "TEXTURE", this.value_height)
+		else
+			mUI_DebugMessage("unsupported dropdown type: " .. this.combo_type)
+		end
+		MUI_COMBO_SHOW(this)
+	end)
+
 	return combobox
 end

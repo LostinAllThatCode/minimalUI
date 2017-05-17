@@ -1,6 +1,9 @@
+local minimalUI_version = "0.0.4"
+
 mUI = CreateFrame("Frame", nil, UIParent)
 mUI.modules = {}
 mUI:RegisterEvent("ADDON_LOADED")
+mUI:RegisterEvent("PLAYER_LOGOUT")
 
 SLASH_MUI1 = '/mui'
 function SlashCmdList.MUI(msg, editbox)
@@ -48,13 +51,12 @@ function mUI:VariableChanged(var)
 	end
 end
 
-
 mUI:SetScript("OnEvent", function()
 	if(event == "ADDON_LOADED")
 	then
 		if(arg1 == "minimalUI")
 		then			
-			mUI_ConfigInitialize()
+			mUI_ConfigInitialize(minimalUI_version)
 
 			for name in pairs(this.modules)
 			do
@@ -98,6 +100,14 @@ mUI:SetScript("OnEvent", function()
 			this.grid_view:Hide()
 		end
 	else
+		if(event == "PLAYER_LOGOUT") then
+			-- Save current profile to the global saved variable
+			-- for later use. 
+			-- TODO: Make a copy profile settings from other characters
+			local player = UnitName("player")
+			mui_global["Profiles"][player] = mUI_CopyTable(mui_config)
+		end
+
 		for name in pairs(this.modules)
 		do
 			local module = this.modules[name]
@@ -126,7 +136,8 @@ function mUI:RegisterModule(name, ...)
 		self.modules[name].OnLoadDefaults 	= function() end -- stub function
 		self.modules[name].OnEnable 		= function() end -- stub function
 		self.modules[name].OnDisable 		= function() end -- stub function		                            		                 
-		
+		self.modules[name].OnEvent 			= function() end -- stub function	
+	
 		local arg = {...}
 		if(arg ~= nil)
 		then

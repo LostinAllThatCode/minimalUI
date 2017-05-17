@@ -22,6 +22,20 @@ local DEFAULT_BACKDROP_BORDERLESS = {
 	tile = false, tileSize = 0, edgeSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
 }
 
+local function mUI_ParseText(self, text)
+	local return_string = text
+	return_string = gsub(return_string, '||','\124')
+	return_string = gsub(return_string, '($CC)', mUI_HexFromColorTableToString(mUI_GetClassColor(self.entity)))
+	return_string = gsub(return_string, "($name)", self.entitydata.name or "")
+	return_string = gsub(return_string, "($hpmax)", self.entitydata.hpmax or "")
+	return_string = gsub(return_string, "($hp)", self.entitydata.hp or "")
+	return_string = gsub(return_string, "($mpmax)", self.entitydata.mpmax or "")
+	return_string = gsub(return_string, "($mp)", self.entitydata.mp or "")
+	return_string = gsub(return_string, "($level)", self.entitydata.level or "")
+	return_string = gsub(return_string, "($classification)", self.entitydata.classification or "")
+	return_string = gsub(return_string, "($class)", self.entitydata.class or "")
+	return return_string
+end
 
 local function mUI_UnitframesGetComboPoints(self)
 	self.entitydata.combopoints = GetComboPoints("player", "target")
@@ -100,30 +114,33 @@ local function mUI_UnitframesAttachConfig(self, frame_layout, bars_layout, custo
 end
 
 local function mUI_UnitFramesUpdateBars(self)
-	local level = ""
-	if(self.entitydata.classification ~= "normal") then
-		level = " [".. self.entitydata.level .. " ".. strupper(self.entitydata.classification) .. "] "
-	else
-		level = " [".. self.entitydata.level .. "] "
-	end
-	local health_text =  level .. self.entitydata.name .. " " .. self.entitydata.hp .. "|".. self.entitydata.hpmax
 
 	if(mUI_GetVariableValueByName(unitframes, "MenuA|General|Configuration_Mode") == false) then
 		if(self.entitydata.isdead) then
-			self.hp.text:SetText( " " .. self.entitydata.name)
-			self.power.text:SetText( " DEAD " )
+			self.hp.lt:SetText( " " .. self.entitydata.name)
+			self.hp.rt:SetText( "DEAD ")
+			self.power.lt:SetText( " " )
+			self.power.rt:SetText( " " )
 		elseif(self.entitydata.isghost) then
-			self.hp.text:SetText( " " .. self.entitydata.name )
-			self.power.text:SetText( " GHOST" )
+			self.hp.lt:SetText( " " .. self.entitydata.name)
+			self.hp.rt:SetText( "GHOST ")
+			self.power.lt:SetText( " " )
+			self.power.rt:SetText( " " )
 		elseif(self.entitydata.disconnected) then
-			self.hp.text:SetText( " " .. self.entitydata.name )
-			self.power.text:SetText( " DISCONNECTED" )
+			self.hp.lt:SetText( " " .. self.entitydata.name)
+			self.hp.rt:SetText( "DISCONNECTED ")
+			self.power.lt:SetText( " " )
+			self.power.rt:SetText( " " )
 		else
-			self.hp.text:SetText( health_text )
-			if(self.power:GetHeight() >= self.power.text:GetStringHeight()-2) then 
-				self.power.text:SetText( " " .. self.entitydata.mp .. "|".. self.entitydata.mpmax)
+			self.hp.lt:SetText(mUI_ParseText(self, self.cfg.custom["HP_Bar_Text_Left"].value))
+			self.hp.rt:SetText(mUI_ParseText(self, self.cfg.custom["HP_Bar_Text_Right"].value))
+
+			if(self.cfg.custom["MP_Bar_Text_Left"] and self.cfg.custom["MP_Bar_Text_Right"]) then
+				self.power.lt:SetText(mUI_ParseText(self, self.cfg.custom["MP_Bar_Text_Left"].value))
+				self.power.rt:SetText(mUI_ParseText(self, self.cfg.custom["MP_Bar_Text_Right"].value))
 			else
-				self.power.text:SetText( " " )
+				self.power.lt:SetText( " " )
+				self.power.rt:SetText( " " )
 			end
 		end
 
@@ -132,8 +149,10 @@ local function mUI_UnitFramesUpdateBars(self)
 		self.power:SetMinMaxValues(0, self.entitydata.mpmax)
 		self.power:SetValue(self.entitydata.mp)
 	else
-		self.hp.text:SetText( " NAME ")
-		self.power.text:SetText( " MANA " )
+		self.hp.lt:SetText( " HP LEFT ")
+		self.hp.rt:SetText( " HP RIGHT ")
+		self.power.lt:SetText( " MP LEFT " )
+		self.power.rt:SetText( " MP RIGHT " )
 		self.hp:SetMinMaxValues(0, self.entitydata.hpmax)
 		self.hp:SetValue(self.entitydata.hp/2)
 		self.power:SetMinMaxValues(0, self.entitydata.mpmax)
@@ -171,7 +190,12 @@ local function mUI_UnitFramesGetEntityData(self)
 	_, self.entitydata.class 		= UnitClass(self.entity)
 	self.entitydata.name 			= UnitName(self.entity) or "Unknown"
 	self.entitydata.level 			= UnitLevel(self.entity)
-	self.entitydata.classification  = UnitClassification(self.entity)
+	self.entitydata.classification  = strupper(UnitClassification(self.entity))
+	if( self.entitydata.classification == "NORMAL" or 
+		self.entitydata.classification == "TRIVIAL" or
+		self.entitydata.classification == "MINUs") then
+		self.entitydata.classification = ""
+	end
 	self.entitydata.hp 				= UnitHealth(self.entity) 
 	self.entitydata.hpmax			= UnitHealthMax(self.entity) or 100
 	self.entitydata.isdead 		 	= UnitIsDead(self.entity)
@@ -206,9 +230,12 @@ local function mUI_UnitFramesFullUpdate(self)
 	self.hp:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.hp:SetStatusBarTexture(self.cfg.bars["BG_Texture"].value)
 	                                                                                    
-	self.hp.text:SetFont(self.cfg.bars["HP_Font"].value, self.cfg.bars["HP_Font_Size"].value)
-	self.hp.text:SetTextColor(mUI_GetColor(self.cfg.bars["HP_Font_Color"].value))
-	self.hp.text:SetShadowColor(mUI_GetColor(self.cfg.bars["HP_Font_Shadow_Color"].value))
+	self.hp.lt:SetFont(self.cfg.bars["HP_Font"].value, self.cfg.bars["HP_Font_Size"].value)
+	self.hp.lt:SetTextColor(mUI_GetColor(self.cfg.bars["HP_Font_Color"].value))
+	self.hp.lt:SetShadowColor(mUI_GetColor(self.cfg.bars["HP_Font_Shadow_Color"].value))
+	self.hp.rt:SetFont(self.cfg.bars["HP_Font"].value, self.cfg.bars["HP_Font_Size"].value)
+	self.hp.rt:SetTextColor(mUI_GetColor(self.cfg.bars["HP_Font_Color"].value))
+	self.hp.rt:SetShadowColor(mUI_GetColor(self.cfg.bars["HP_Font_Shadow_Color"].value))
 
 	self.hp_deficit:SetHeight(self.cfg.custom["HP_Bar_Height"].value)
 	self.hp_deficit:SetFrameStrata(self.cfg.custom["Strata"].value)
@@ -218,10 +245,13 @@ local function mUI_UnitFramesFullUpdate(self)
 	self.power:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.power:SetStatusBarTexture(self.cfg.bars["BG_Texture"].value)
 
-	self.power.text:SetTextColor(mUI_GetColor(self.cfg.bars["MP_Font_Color"].value))
-	self.power.text:SetFont(self.cfg.bars["MP_Font"].value, self.cfg.bars["MP_Font_Size"].value)
-	self.power.text:SetShadowColor(mUI_GetColor(self.cfg.bars["MP_Font_Shadow_Color"].value))
-	
+	self.power.lt:SetFont(self.cfg.bars["MP_Font"].value, self.cfg.bars["MP_Font_Size"].value)
+	self.power.lt:SetTextColor(mUI_GetColor(self.cfg.bars["MP_Font_Color"].value))
+	self.power.lt:SetShadowColor(mUI_GetColor(self.cfg.bars["MP_Font_Shadow_Color"].value))
+	self.power.rt:SetFont(self.cfg.bars["MP_Font"].value, self.cfg.bars["MP_Font_Size"].value)
+	self.power.rt:SetTextColor(mUI_GetColor(self.cfg.bars["MP_Font_Color"].value))
+	self.power.rt:SetShadowColor(mUI_GetColor(self.cfg.bars["MP_Font_Shadow_Color"].value))
+
 	self.power_deficit:SetHeight(self.cfg.custom["MP_Bar_Height"].value)
 	self.power_deficit:SetFrameStrata(self.cfg.custom["Strata"].value)
 	self.power_deficit:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
@@ -348,10 +378,8 @@ function mUI_UnitframesInitialize(frame, entity, frame_layout, bars_layout, cust
 	frame.hp = CreateFrame("StatusBar", nil, frame)
 	frame.hp:SetAllPoints(frame.hp_deficit)
 
-	frame.hp.text = mUI_FontString(frame.hp, nil, 12, {r=0,g=0,b=0,a=1})
-	frame.hp.text:SetAllPoints(frame.hp_deficit)
-	frame.hp.text:SetJustifyH("LEFT")
-	frame.hp.text:SetJustifyV("CENTER")
+	frame.hp.lt = mUI_FontString(frame.hp, nil, 12, nil, "left text", "TOP", "LEFT")
+	frame.hp.rt = mUI_FontString(frame.hp, nil, 12, nil, "right text", "TOP", "RIGHT")
 
 	frame.power_deficit = mUI_CreateDefaultFrame(frame, nil, 0, 16)
 	frame.power_deficit:ClearAllPoints()
@@ -362,10 +390,8 @@ function mUI_UnitframesInitialize(frame, entity, frame_layout, bars_layout, cust
 	frame.power = CreateFrame("StatusBar", nil, frame)
 	frame.power:SetAllPoints(frame.power_deficit)
 
-	frame.power.text = mUI_FontString(frame.power, nil, 12, {r=1,g=1,b=1,a=1})
-	frame.power.text:SetAllPoints(frame.power_deficit)
-	frame.power.text:SetJustifyH("LEFT")
-	frame.power.text:SetJustifyV("TOP")
+	frame.power.lt = mUI_FontString(frame.power, nil, 12, nil, "left text", "TOP", "LEFT")
+	frame.power.rt = mUI_FontString(frame.power, nil, 12, nil, "right text", "TOP", "RIGHT")
 
 	if(entity ~= "targettarget") then
 		frame.buffpanel = mUI_CreateDefaultFrame(frame, nil, 100, 18, "DIALOG")
@@ -420,7 +446,7 @@ function mUI_UnitframesInitialize(frame, entity, frame_layout, bars_layout, cust
 			frame.debuffpanel.buffs[i].icon:SetPoint("TOPLEFT", frame.debuffpanel.buffs[i].inlay, "TOPLEFT", 1, -1)
 			frame.debuffpanel.buffs[i].icon:SetPoint("BOTTOMRIGHT", frame.debuffpanel.buffs[i].inlay, "BOTTOMRIGHT", -1, 1)
 
-			frame.debuffpanel.buffs[i].count = mUI_FontString(frame.debuffpanel.buffs[i], nil, 12, nil, "", "BOTTOM", "RIGHT")
+			frame.debuffpanel.buffs[i].count = mUI_FontString(frame.debuffpanel.buffs[i], nil, 10, nil, "", "BOTTOM", "RIGHT")
 
 			frame.debuffpanel.buffs[i]:SetAllPoints(frame.debuffpanel.buffs[i].bg)
 			frame.debuffpanel.buffs[i]:EnableMouse(true)
@@ -450,44 +476,48 @@ function unitframes:OnLoadDefaults(config)
 		tile = false, tileSize = 0, edgeSize = 16, insets = { left = 0, right = 0, top = 0, bottom = 0 } 
 	}
 
-	mUI_SetVariable(self, "MenuA|General|Locked", 										"BOOLEAN", 			true)
-	mUI_SetVariable(self, "MenuA|General|Configuration_Mode", 							"BOOLEAN", 			true) -- TODO: Make this a dropdown thing for None, Group, Raid
-	mUI_SetVariable(self, "MenuA|General|Buff_Border_Color", 							"BGCOLOR", 			{r=1,g=1,b=1,a=.25}) -- TODO: Make this a dropdown thing for None, Group, Raid
-	mUI_SetVariable(self, "MenuA|General|Debuff_Border_Color", 							"BGCOLOR", 			{r=1,g=0,b=0,a=.75}) -- TODO: Make this a dropdown thing for None, Group, Raid
+	mUI_SetVariable(self, "MenuA|General|Locked", 				"BOOLEAN", true)
+	mUI_SetVariable(self, "MenuA|General|Configuration_Mode", 	"BOOLEAN", false) -- TODO: Make this a dropdown thing for None, Group, Raid
+	mUI_SetVariable(self, "MenuA|General|Buff_Border_Color", 	"BGCOLOR", {r=1,g=1,b=1,a=.25}) -- TODO: Make this a dropdown thing for None, Group, Raid
+	mUI_SetVariable(self, "MenuA|General|Debuff_Border_Color", 	"BGCOLOR", {r=1,g=0,b=0,a=.75}) -- TODO: Make this a dropdown thing for None, Group, Raid
 
-	mUI_SetVariable(self, "MenuA|Performance|Rangecheck_PartyRaid_Interval",			"NUMBERFIELD",		1000)
-	mUI_SetVariable(self, "MenuA|Performance|Target_Of_Target_Update_Interval",			"NUMBERFIELD",		500)
+	mUI_SetVariable(self, "MenuA|Performance|Rangecheck_PartyRaid_Interval",	"NUMBERFIELD",	500)
+	mUI_SetVariable(self, "MenuA|Performance|Target_Of_Target_Update_Interval",	"NUMBERFIELD",	250)
 
 	mUI_SetVariable(self, "MenuB|Background|Border_Color", 				"BORDERCOLOR", 		{r=1.0, g=0.0, b=1.0, a=0.0})
-	mUI_SetVariable(self, "MenuB|Background|Border_Texture",			"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga")
+	mUI_SetVariable(self, "MenuB|Background|Border_Texture",			"COMBOTEXTURE", 	"Interface\\AddOns\\minimalUI\\img\\BorderShadow.tga")
 	mUI_SetVariable(self, "MenuB|Background|BG_Color", 					"BGCOLOR",			{r=0.1, g=0.1, b=0.1, a=1.0})
-	mUI_SetVariable(self, "MenuB|Background|BG_Texture",				"TEXTURE", 			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
+	mUI_SetVariable(self, "MenuB|Background|BG_Texture",				"COMBOTEXTURE", 	"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")
 
-	mUI_SetVariable(self, "MenuC|StatusBar|BG_Texture", 				"TEXTURE",			"Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga")	
+	mUI_SetVariable(self, "MenuC|StatusBar|BG_Texture", 				"COMBOTEXTURE",		"Interface\\AddOns\\minimalUI\\img\\BantoBar.tga")	
 	mUI_SetVariable(self, "MenuC|StatusBar|HP_Bar_Color", 				"BGCOLOR",			{r=0.09, g=0.09, b=0.09, a=1.0})
 	mUI_SetVariable(self, "MenuC|StatusBar|HP_Bar_Color_Mode",			"DYNAMIC_COLOR",	"CUSTOM")
-	mUI_SetVariable(self, "MenuC|StatusBar|HP_Deficit_Bar_Color", 		"BGCOLOR",			{r=0.0, g=0.0, b=0.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font",					"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Deficit_Bar_Color", 		"BGCOLOR",			{r=0.29, g=0.29, b=0.29, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font",					"COMBOFONT",		"Interface\\AddOns\\minimalUI\\Fonts\\big_noodle_titling.ttf")
 	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Color",				"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.6})
-	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Size",				"NUMBERFIELD",		10)
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.4})
+	mUI_SetVariable(self, "MenuC|StatusBar|HP_Font_Size",				"NUMBERFIELD",		18)
 	mUI_SetVariable(self, "MenuC|StatusBar|MP_Bar_Color", 				"BGCOLOR",			{r=1.0, g=0.0, b=0.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MP_Bar_Color_Mode",			"DYNAMIC_COLOR",	"CLASS")
-	mUI_SetVariable(self, "MenuC|StatusBar|MP_Deficit_Bar_Color", 		"BGCOLOR",			{r=0.0, g=0.0, b=0.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font",					"TEXTFIELD",		"Interface\\AddOns\\minimalUI\\Fonts\\homespun.ttf")
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Bar_Color_Mode",			"DYNAMIC_COLOR",	"POWER")
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Deficit_Bar_Color", 		"BGCOLOR",			{r=0.35, g=0.35, b=0.35, a=1.0})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font",					"COMBOFONT",		"Interface\\AddOns\\minimalUI\\Fonts\\big_noodle_titling.ttf")
 	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Color",				"TEXTCOLOR",		{r=1.0, g=1.0, b=1.0, a=1.0})
-	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.6})
-	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Size",				"NUMBERFIELD",		10)
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Shadow_Color",		"TEXTCOLOR",		{r=0.0, g=0.0, b=0.0, a=0.4})
+	mUI_SetVariable(self, "MenuC|StatusBar|MP_Font_Size",				"NUMBERFIELD",		11)
 
-	mUI_SetVariable(self, "MenuD|Player|Buff_Count",			"NUMBERFIELD", 		20)	
-	mUI_SetVariable(self, "MenuD|Player|Buff_Size",				"NUMBERFIELD", 		14)	
-	mUI_SetVariable(self, "MenuD|Player|Debuff_Count",			"NUMBERFIELD", 		40)	
-	mUI_SetVariable(self, "MenuD|Player|Debuff_Size",			"NUMBERFIELD", 		19)	
+	mUI_SetVariable(self, "MenuD|Player|Buff_Count",			"NUMBERFIELD", 		16)	
+	mUI_SetVariable(self, "MenuD|Player|Buff_Size",				"NUMBERFIELD", 		24)	
+	mUI_SetVariable(self, "MenuD|Player|Debuff_Count",			"NUMBERFIELD", 		12)	
+	mUI_SetVariable(self, "MenuD|Player|Debuff_Size",			"NUMBERFIELD", 		32)	
 	mUI_SetVariable(self, "MenuD|Player|Frame_Height",			"NUMBERFIELD", 		62)	
 	mUI_SetVariable(self, "MenuD|Player|Frame_Width",			"NUMBERFIELD", 		200)
 	mUI_SetVariable(self, "MenuD|Player|HP_Bar_Height",	 		"NUMBERFIELD", 		45)
+	mUI_SetVariable(self, "MenuD|Player|HP_Bar_Text_Left", 		"TEXTFIELD", 		"$name")
+	mUI_SetVariable(self, "MenuD|Player|HP_Bar_Text_Right",		"TEXTFIELD", 		"$hp")
 	mUI_SetVariable(self, "MenuD|Player|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuD|Player|Strata", 				"STRATA", 			"LOW")	
+	mUI_SetVariable(self, "MenuD|Player|MP_Bar_Text_Left", 		"TEXTFIELD", 		"$class")
+	mUI_SetVariable(self, "MenuD|Player|MP_Bar_Text_Right",		"TEXTFIELD", 		"$mp")
+	mUI_SetVariable(self, "MenuD|Player|Strata", 				"STRATA", 			"LOW")
 
 	mUI_SetVariable(self, "MenuD|Pet|Buff_Count",				"NUMBERFIELD", 		10)	
 	mUI_SetVariable(self, "MenuD|Pet|Buff_Size",				"NUMBERFIELD", 		14)	
@@ -495,35 +525,49 @@ function unitframes:OnLoadDefaults(config)
 	mUI_SetVariable(self, "MenuD|Pet|Debuff_Size",				"NUMBERFIELD", 		19)	
 	mUI_SetVariable(self, "MenuD|Pet|Frame_Height",				"NUMBERFIELD", 		35)	
 	mUI_SetVariable(self, "MenuD|Pet|Frame_Width",				"NUMBERFIELD", 		200)
+	mUI_SetVariable(self, "MenuD|Pet|HP_Bar_Text_Left", 		"TEXTFIELD", 		"$level $name $happiness")
+	mUI_SetVariable(self, "MenuD|Pet|HP_Bar_Text_Right",		"TEXTFIELD", 		"$hp|$hpmax")
 	mUI_SetVariable(self, "MenuD|Pet|HP_Bar_Height",	 		"NUMBERFIELD", 		18)
+	mUI_SetVariable(self, "MenuD|Pet|MP_Bar_Text_Left", 		"TEXTFIELD", 		"$class")
+	mUI_SetVariable(self, "MenuD|Pet|MP_Bar_Text_Right",		"TEXTFIELD", 		"$mp|$mpmax")
 	mUI_SetVariable(self, "MenuD|Pet|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
 	mUI_SetVariable(self, "MenuD|Pet|Strata", 					"STRATA", 			"LOW")	
 
-	mUI_SetVariable(self, "MenuE|Target|Buff_Count",			"NUMBERFIELD", 		10)	
-	mUI_SetVariable(self, "MenuE|Target|Buff_Size",				"NUMBERFIELD", 		14)	
-	mUI_SetVariable(self, "MenuE|Target|Debuff_Count",			"NUMBERFIELD", 		40)	
+	mUI_SetVariable(self, "MenuE|Target|Buff_Count",			"NUMBERFIELD", 		16)	
+	mUI_SetVariable(self, "MenuE|Target|Buff_Size",				"NUMBERFIELD", 		24)	
+	mUI_SetVariable(self, "MenuE|Target|Debuff_Count",			"NUMBERFIELD", 		20)	
 	mUI_SetVariable(self, "MenuE|Target|Debuff_Size",			"NUMBERFIELD", 		19)	
-	mUI_SetVariable(self, "MenuE|Target|MP_Bar_Height",			"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuE|Target|HP_Bar_Height",			"NUMBERFIELD", 		45)
-	mUI_SetVariable(self, "MenuE|Target|Frame_Width", 			"NUMBERFIELD", 		200)
 	mUI_SetVariable(self, "MenuE|Target|Frame_Height",			"NUMBERFIELD", 		62)
+	mUI_SetVariable(self, "MenuE|Target|Frame_Width", 			"NUMBERFIELD", 		200)
+	mUI_SetVariable(self, "MenuE|Target|HP_Bar_Height",			"NUMBERFIELD", 		45)
+	mUI_SetVariable(self, "MenuE|Target|HP_Bar_Text_Left", 		"TEXTFIELD", 		"$level $classification|n$name")
+	mUI_SetVariable(self, "MenuE|Target|HP_Bar_Text_Right",		"TEXTFIELD", 		"$hp|n$hpmax")
+	mUI_SetVariable(self, "MenuE|Target|MP_Bar_Height",			"NUMBERFIELD", 		12)
+	mUI_SetVariable(self, "MenuE|Target|MP_Bar_Text_Left", 		"TEXTFIELD", 		"$class")
+	mUI_SetVariable(self, "MenuE|Target|MP_Bar_Text_Right",		"TEXTFIELD", 		"$mp|$mpmax")
 	mUI_SetVariable(self, "MenuE|Target|Strata", 				"STRATA", 			"LOW")
 	
-	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar_Height",	"NUMBERFIELD", 		22)
-	mUI_SetVariable(self, "MenuF|TargetTarget|MP_Bar_Height",	"NUMBERFIELD", 		3)
-	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Width", 	"NUMBERFIELD", 		200)
-	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Height",	"NUMBERFIELD", 		30)
-	mUI_SetVariable(self, "MenuF|TargetTarget|Strata", 			"STRATA", 			"LOW")
+	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Height",		"NUMBERFIELD", 		30)
+	mUI_SetVariable(self, "MenuF|TargetTarget|Frame_Width", 		"NUMBERFIELD", 		200)
+	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar_Height",		"NUMBERFIELD", 		22)
+	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar_Text_Left", 	"TEXTFIELD", 		"$name")
+	mUI_SetVariable(self, "MenuF|TargetTarget|HP_Bar_Text_Right",	"TEXTFIELD", 		"")
+	mUI_SetVariable(self, "MenuF|TargetTarget|MP_Bar_Height",		"NUMBERFIELD", 		3)
+	mUI_SetVariable(self, "MenuF|TargetTarget|Strata", 				"STRATA", 			"LOW")
 	
-	mUI_SetVariable(self, "MenuG|Party|Buff_Count",				"NUMBERFIELD", 		12)	
-	mUI_SetVariable(self, "MenuG|Party|Buff_Size",				"NUMBERFIELD", 		12)	
-	mUI_SetVariable(self, "MenuG|Party|Debuff_Count",			"NUMBERFIELD", 		10)	
-	mUI_SetVariable(self, "MenuG|Party|Debuff_Size",			"NUMBERFIELD", 		16)	
-	mUI_SetVariable(self, "MenuG|Party|HP_Bar_Height",			"NUMBERFIELD", 		23)
-	mUI_SetVariable(self, "MenuG|Party|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
-	mUI_SetVariable(self, "MenuG|Party|Frame_Width", 			"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuG|Party|Buff_Count",				"NUMBERFIELD", 		10)	
+	mUI_SetVariable(self, "MenuG|Party|Buff_Size",				"NUMBERFIELD", 		16)	
+	mUI_SetVariable(self, "MenuG|Party|Debuff_Count",			"NUMBERFIELD", 		7)	
+	mUI_SetVariable(self, "MenuG|Party|Debuff_Size",			"NUMBERFIELD", 		24)	
 	mUI_SetVariable(self, "MenuG|Party|Frame_Height",			"NUMBERFIELD", 		40)
-	mUI_SetVariable(self, "MenuG|Party|Group_Spacing_Y",		"NUMBERFIELD", 		30)
+	mUI_SetVariable(self, "MenuG|Party|Frame_Width", 			"NUMBERFIELD", 		180)
+	mUI_SetVariable(self, "MenuG|Party|Group_Spacing_Y",		"NUMBERFIELD", 		45)
+	mUI_SetVariable(self, "MenuG|Party|HP_Bar_Height",			"NUMBERFIELD", 		23)
+	mUI_SetVariable(self, "MenuG|Party|HP_Bar_Text_Left", 		"TEXTFIELD", 		"$name")
+	mUI_SetVariable(self, "MenuG|Party|HP_Bar_Text_Right",		"TEXTFIELD", 		"$hp|$hpmax")
+	mUI_SetVariable(self, "MenuG|Party|MP_Bar_Height",	 		"NUMBERFIELD", 		12)
+	mUI_SetVariable(self, "MenuG|Party|MP_Bar_Text_Left", 		"TEXTFIELD", 		"$class")
+	mUI_SetVariable(self, "MenuG|Party|MP_Bar_Text_Right",		"TEXTFIELD", 		"$mp|$mpmax")
 	mUI_SetVariable(self, "MenuG|Party|Strata", 				"STRATA", 			"LOW")
 end
 
@@ -595,19 +639,6 @@ function unitframes:OnEnable()
 	-- Creates an eventhandler for all necessary events
 	local eventhandler = CreateFrame("Frame")
 	eventhandler:SetScript("OnEvent", function ()
-		if mUI_EventIsEither(event, "PARTY_MEMBERS_CHANGED", "PARTY_MEMBER_DISABLE", "PARTY_MEMBER_ENABLE") then
-			local num_members = GetNumPartyMembers()
-			for i=1, 4 do
-				local identifier = "party"..i
-				mUI_UnitFramesUpdate(self[identifier])
-				if(i > num_members) then
-					self[identifier]:Hide()
-				else
-					self[identifier]:Show()
-				end
-			end
-		end
-
 		if mUI_EventIsEither(event, "UNIT_AURA", "UNIT_FACTION", "UPDATE_FACTION", "UNIT_HEALTH", "UNIT_MAXHEALTH", "UNIT_MANA", "UNIT_MAXMANA", "UNIT_RAGE", "UNIT_NAXRAGE", "UNIT_ENERGY", "UNIT_MAXENERGY") then 
 			if(arg1 and self[arg1]) then mUI_UnitFramesUpdate(self[arg1]) end
 		end
@@ -621,8 +652,7 @@ function unitframes:OnEnable()
 	mUI_EventRegisterList(eventhandler, 
 		"UNIT_HEALTH", "UNIT_MAXHEALTH",  "UNIT_MANA", "UNIT_MAXMANA", "UNIT_RAGE",
 	 	"UNIT_FACTION", "UPDATE_FACTION", "UNIT_AURA", 
-		"UNIT_NAXRAGE", "UNIT_ENERGY", "UNIT_MAXENERGY", "PLAYER_ENTERING_WORLD", 
-		"PARTY_MEMBERS_CHANGED", "PARTY_MEMBER_DISABLE", "PARTY_MEMBER_ENABLE",
+		"UNIT_NAXRAGE", "UNIT_ENERGY", "UNIT_MAXENERGY", "PLAYER_ENTERING_WORLD",
 		"PLAYER_AURAS_CHANGED"
 	)
 
@@ -675,8 +705,8 @@ function unitframes:OnEnable()
 
 	-- Target combobar initialization
 	self.target.combobar = CreateFrame("Frame", nil, self.target)
-	self.target.combobar:SetPoint("TOPLEFT", self.target, "TOPLEFT")
-	self.target.combobar:SetPoint("TOPRIGHT", self.target, "TOPRIGHT")
+	self.target.combobar:SetPoint("TOPLEFT", self.target, "TOPLEFT", 0, 5)
+	self.target.combobar:SetPoint("TOPRIGHT", self.target, "TOPRIGHT", 0, 5)
 	self.target.combobar:SetBackdrop(DEFAULT_BACKDROP_BORDERLESS)
 	self.target.combobar:SetBackdropColor(0,0,0,.75)
 	self.target.combobar:SetHeight(6)
@@ -684,7 +714,7 @@ function unitframes:OnEnable()
 	self.target.combobar.points = {}
 	for i=1, 5 do
 		self.target.combobar.points[i] = self.target.combobar:CreateTexture()
-		self.target.combobar.points[i]:SetTexture(1,1,0,.8)
+		self.target.combobar.points[i]:SetTexture(1,.96,0.41,1.0)
 	end	
 
 	-- TargetTarget unitframe initialization
@@ -740,7 +770,7 @@ function unitframes:OnEnable()
 			mUI_GetVariableValueByName(self, "MenuC|StatusBar"),
 			mUI_GetVariableValueByName(self, "MenuG|Party")
 		)
-
+		RegisterUnitWatch(self[identifier])
 		if(i > num_members) then self[identifier]:Hide() end
 		party_relative = self[identifier]
 	end

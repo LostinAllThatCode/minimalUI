@@ -126,46 +126,79 @@ function mUI_CopyTable(src)
   return _copy(src)
 end
 
-function mUI_ConfigInitialize()
-	if not mui_global then   -- TODO: REMOVE IN RELEASE
-		mui_global = {}
-		mui_global["DEBUG"]  = {}
-		_mUI_SetVariable(mui_global["DEBUG"], "DEBUG", "BOOLEAN", true)
-		mui_global["ClassColors"]  = {}
-		_mUI_SetVariable(mui_global["ClassColors"], "ClassColors", "CLASS_COLORS", 
-			{
-    		["WARRIOR"] = { r = 0.78, g = 0.61, b = 0.43, a = 1 },
-    		["MAGE"] 	= { r = 0.41, g = 0.8,  b = 0.94, a = 1 },
-    		["ROGUE"] 	= { r = 1, 	  g = 0.96, b = 0.41, a = 1 },
-    		["DRUID"] 	= { r = 1,    g = 0.49, b = 0.04, a = 1 },
-    		["HUNTER"] 	= { r = 0.67, g = 0.83, b = 0.45, a = 1 },
-    		["SHAMAN"] 	= { r = 0.14, g = 0.35, b = 1.0,  a = 1 },
-    		["PRIEST"] 	= { r = 0.85, g = 0.85, b = 0.85, a = 1 },
-    		["WARLOCK"] = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
-    		["PALADIN"] = { r = 0.96, g = 0.55, b = 0.73, a = 1 }
-			}
-		)
-		mui_global["PowerColors"] = {}
-		_mUI_SetVariable(mui_global["PowerColors"], "PowerColors", "POWER_COLORS", 
-			{
-    		{ r = 0.41, g = 0.8,  b = 0.94, a = 1 }, -- MANA
-    		{ r = 0.8,  g = 0.2,  b = 0.2,  a = 1 }, -- RAGE
-    		{ r = 1, 	g = 0.5,  b = 0.25, a = 1 }, -- FOCUS
-    		{ r = 1, 	g = 0.96, b = 0.41, a = 1 }	 -- ENERGY
-			}
-		)	
-		mui_global["Pixel_Perfect_Mode"] = {}
-		_mUI_SetVariable(mui_global["Pixel_Perfect_Mode"], "Pixel_Perfect_Mode", "BOOLEAN", GetCVar("UseUIScale"))
+local function mUI_ConfigInitDB(version)
+	mui_global = {}
+	mui_global["VERSION"]  = {}
+	_mUI_SetVariable(mui_global["VERSION"], "VERSION", "STRING", version)
+	mui_global["DEBUG"]  = {}
+	_mUI_SetVariable(mui_global["DEBUG"], "DEBUG", "BOOLEAN", false)
+	mui_global["ClassColors"]  = {}
+	_mUI_SetVariable(mui_global["ClassColors"], "ClassColors", "CLASS_COLORS", 
+		{
+   		["WARRIOR"] = { r = 0.78, g = 0.61, b = 0.43, a = 1 },
+   		["MAGE"] 	= { r = 0.41, g = 0.8,  b = 0.94, a = 1 },
+   		["ROGUE"] 	= { r = 1, 	  g = 0.96, b = 0.41, a = 1 },
+   		["DRUID"] 	= { r = 1,    g = 0.49, b = 0.04, a = 1 },
+   		["HUNTER"] 	= { r = 0.67, g = 0.83, b = 0.45, a = 1 },
+   		["SHAMAN"] 	= { r = 0.14, g = 0.35, b = 1.0,  a = 1 },
+   		["PRIEST"] 	= { r = 0.85, g = 0.85, b = 0.85, a = 1 },
+   		["WARLOCK"] = { r = 0.58, g = 0.51, b = 0.79, a = 1 },
+   		["PALADIN"] = { r = 0.96, g = 0.55, b = 0.73, a = 1 }
+		}
+	)
+	mui_global["PowerColors"] = {}
+	_mUI_SetVariable(mui_global["PowerColors"], "PowerColors", "POWER_COLORS", 
+		{
+   		{ r = 0.41, g = 0.8,  b = 0.94, a = 1 }, -- MANA
+   		{ r = 0.8,  g = 0.2,  b = 0.2,  a = 1 }, -- RAGE
+   		{ r = 1, 	g = 0.5,  b = 0.25, a = 1 }, -- FOCUS
+   		{ r = 1, 	g = 0.96, b = 0.41, a = 1 }	 -- ENERGY
+		}
+	)	
+	mui_global["Pixel_Perfect_Mode"] = {}
+	_mUI_SetVariable(mui_global["Pixel_Perfect_Mode"], "Pixel_Perfect_Mode", "BOOLEAN", GetCVar("UseUIScale"))
+
+	if(mui_global["Profiles"] == nil) then mui_global["Profiles"] = {} end
+end
+
+function mUI_ConfigInitialize(mod_version)	
+	local is_db_old = false
+	if not mui_global or is_db_old then   -- TODO: REMOVE IN RELEASE
+		mUI_ConfigInitDB(mod_version)
+		mUI_DebugMessage("Initializing minimalUI. New SavedVariables are created.")
 	else
-		mUI_DebugMessage("General mUF config already exists")
+		local db_version = "0.0.0"
+		if(mui_global["VERSION"]) then
+			db_version = mui_global["VERSION"].value
+		end
+		is_db_old = (db_version<mod_version)
+		if(is_db_old) then
+			mUI_ConfigInitDB(mod_version)
+			mUI_DebugMessage("An older version of this mod was detected! SavedVariables will be resetted.")
+		else
+			mUI_DebugMessage("mUI_global_db exists already. db_version == mod_version")
+		end
 	end
 
 	-- Initialize per character config
-	if not mui_config then
+	if not mui_config or is_db_old then
 		mUI_DebugMessage("Character config created |cffffff22"..UnitName("player"))
 		mui_config = {}
+		mui_config["VERSION"]  = {}
+		_mUI_SetVariable(mui_config["VERSION"], "VERSION", "STRING", mod_version)
 	else
-		mUI_DebugMessage("Character config already exists for |cffffff22"..UnitName("player"))
+		local db_user_version = "0.0.0"
+		if(mui_config["VERSION"]) then
+			db_user_version = mui_config["VERSION"].value
+		end
+		is_db_old = (db_user_version<mod_version)
+		if(is_db_old) then
+			mUI_DebugMessage("SavedVariables reset for " .. UnitName("player") .. ".")
+			mui_config["VERSION"]  = {}
+			_mUI_SetVariable(mui_config["VERSION"], "VERSION", "STRING", mod_version)
+		else
+			mUI_DebugMessage("mUI_user_db exists already. db_user_version == mod_version")
+		end
 	end
 end
 
@@ -175,12 +208,18 @@ end
 -- 
 
 function mUI_GenerateConfigFrame()
+	local version = "0.0.0"
+	if(mui_global["VERSION"]) then
+	 	version = mui_global["VERSION"].value
+	 end
    	local inline_backdrop = { 
 		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
 		edgeFile = "", 
 		tile = false, tileSize = 0, edgeSize = 0, 
 		insets = { left = 0, right = 0, top = 0, bottom = 0 }
 	}
+
+	local title_font = "Interface\\AddOns\\minimalUI\\fonts\\visitor1.ttf"
 
 	local mainframe  = mUI_CreateDefaultFrame(nil, "mConfigFrame", 800, 600, "DIALOG")
 	mainframe.tabs 	 = {}
@@ -211,7 +250,7 @@ function mUI_GenerateConfigFrame()
 	mainframe.title:SetPoint("TOPLEFT", mainframe, "TOPLEFT", 0, 0)
 	mainframe.title:SetPoint("BOTTOMRIGHT", mainframe, "TOPRIGHT", 0, -18)
 	mainframe.title:SetBackdropColor(0.20,0.20,0.20,1.00)
-	mainframe.title.text = mUI_FontString(mainframe.title, nil, 14, nil, " minimalUI - configuration gui - v0.1 (beta)", "CENTER", "LEFT")
+	mainframe.title.text = mUI_FontString(mainframe.title, title_font, 14, nil, " minimalUI - configuration gui - v"..version.." (beta)", "CENTER", "LEFT")
 
 	mainframe.close = mUI_CreateDefaultButton(mainframe.title, nil, "X", 32, 16, 12)
 	mainframe.close:ClearAllPoints()
@@ -252,16 +291,32 @@ function mUI_GenerateConfigFrame()
    		if(dest >= 0 and dest < (max - this:GetHeight() + stepsize)) then this:SetVerticalScroll(dest) end
    	end)
 
-   	local infoframe = mUI_CreateDefaultFrame(mainframe, "mConfigFrameFirstFrame", mainframe:GetWidth() -155, 200, "DIALOG", inline_backdrop)
+   	local infoframe = mUI_CreateDefaultFrame(mainframe, "mConfigFrameFirstFrame", mainframe:GetWidth() -155, 400, "DIALOG", inline_backdrop)
    	infoframe.info  = mUI_FontString(infoframe, nil, 14)
    	infoframe.info:SetJustifyV("TOP")
    	infoframe.info:SetJustifyH("LEFT")
-   	infoframe.info:SetText("Welcome to the minimalUI configuration gui.\n" ..
+   	infoframe.info:SetText("Welcome to the minimalUI configuration gui.\n\n" ..
+   		"Press the |cffffff00?|r button in the top right corner to get back to this view.\n\n" ..
+   		"Press the |cff0088FF<|>|r button in the top right corner to make this window smaller/bigger.\n\n" ..
    		"Press one of the buttons on the left side to get to the specific settings tab.\n" ..
    		"\n" ..
-   		"If you have found any bugs or suggestions please visit the following website and create an issue!\n\n"..
-   		"|cff888800https://github.com/LostinAllThatCode/minimalUI|r\n\n" ..
-   		"TODO: More information here...")
+   		"If you have any suggestions or bugs please visit the following website and create an enhancement/issue on the ISSUES tab!\n\n"..
+   		"|cff00BB00https://github.com/LostinAllThatCode/minimalUI|r\n\n" ..
+   		"** IMPORTANT:\n\n"..
+   		"Module |cff0088FF[UNITFRAMES]|r\n\n  Available text fields for \"Bar Text\":\n\n"..
+   		"  $hp               - current health\n"..
+   		"  $hpmax            - current maximum health\n"..
+   		"  $mp               - current mana\n"..
+   		"  $mpmax            - current maximum mana\n"..
+   		"  $class            - current class\n"..
+   		"  $classification   - WORLDBOSS, RARE, ELITE or RAREELITE\n"..
+   		"  $level            - current level\n"..
+   		"  $happiness        - current happiness (PET ONLY)\n"..
+   		"  ------------------------------------------------\n"..
+   		"  $CC               - colors following text in class color (use ||r to stop coloring)\n\n"..
+   		"  You can also define colors by the ||cAARRGGBB tag and clear the color by ||r\n"..
+   		"    Ex.: \n      ||cFF00FF00$level||r $name || Result: |cff00ff0070|r Thrall"
+   		)
    	table.insert(mainframe.tabs, infoframe)
 
 	local height = 1;
@@ -312,7 +367,6 @@ function mUI_GenerateConfigFrame()
 		mainframe.scrollframe:SetScrollChild(tab)
 	end
 	-- ########################
-
    	
 	return mainframe
 end
@@ -349,13 +403,13 @@ function mUI_CreateConfigItem(entry, parent, current_height, module)
 			end
 		else
 			local item = mUI_CreateDefaultFrame(parent, nil, parent:GetWidth()-22, 0, "DIALOG", item_backdrop)
-			item:SetBackdropColor(.2, .2, .2, 1)
+			item:SetBackdropColor(.2, .2, .2, .75)
 
 			item:ClearAllPoints()
 			item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_height * -1)
 			item:SetHeight(16)
-			item.text = mUI_FontString(item, "Interface\\Addons\\minimalUI\\Fonts\\visitor2.ttf", 16, nil, gsub(entry.name,"_", " "), "TOP", "LEFT")
-			item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 6, 0)
+			item.text = mUI_FontString(item, "Interface\\Addons\\minimalUI\\Fonts\\LiberationMono-Bold.ttf", 14, nil, strupper(gsub(entry.name,"_", " ")), "TOP", "LEFT")
+			item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 2, -4)
 			item.text:SetTextColor(.9,.9,.2, 1)
 
 			local group_height = result_height + 18
@@ -395,8 +449,14 @@ function mUI_CreateConfigItem(entry, parent, current_height, module)
 	elseif(entry.vtype == "DYNAMIC_COLOR")
 	then
 		result_height = mUI_CreateConfigItemDynamicColor(entry, parent, current_height, module)
+	elseif(entry.vtype == "COMBOFONT")
+	then
+		result_height = mUI_CreateConfigItemComboFont(entry, parent, current_height, module)
+	elseif(entry.vtype == "COMBOTEXTURE")
+	then
+		result_height = mUI_CreateConfigItemComboTexture(entry, parent, current_height, module)
 	else
-		mUI_DebugMessage("unhandled type specifier: " .. entry.vtype)
+		--mUI_DebugMessage("unhandled type specifier: " .. entry.vtype)
 	end
 	return result_height
 end
@@ -413,7 +473,7 @@ function mUI_CreateConfigItemNumberfield(var, parent, current_y, module)
 	value:SetNumeric(true)
 	value:SetBackdropColor(.1,.1,.1,1)
 	value:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
-	value:SetHeight(16)
+	value:SetHeight(24)
 	value:SetAutoFocus(false)
 
 	value:SetScript("OnEnterPressed", function() 
@@ -427,11 +487,11 @@ function mUI_CreateConfigItemNumberfield(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
+	item:SetHeight(24)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	
-	return current_y + 17
+	return current_y + 25
 end
 
 function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
@@ -445,7 +505,7 @@ function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
 	local value = mUI_CreateDefaultEditbox(parent, var.value, 300, 0, "TOP", "RIGHT")
 	value:SetBackdropColor(.1,.1,.1,1)
 	value:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
-	value:SetHeight(16)
+	value:SetHeight(24)
 	value:SetAutoFocus(false)
 
 	value:SetScript("OnEnterPressed", function() 
@@ -460,11 +520,11 @@ function mUI_CreateConfigItemTextfield(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", value, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
+	item:SetHeight(24)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 
-	return current_y + 17
+	return current_y + 25
 end
 
 function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
@@ -480,7 +540,7 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 	checkbox:SetBackdrop(item_backdrop)
 	checkbox:SetBackdropColor(.12,.12,.12,1)
 	checkbox:SetWidth(32)
-	checkbox:SetHeight(16)
+	checkbox:SetHeight(24)
 	checkbox:SetChecked(var.value)
 	checkbox:SetScript("OnClick", function ()
 		var.value = (this:GetChecked() == 1)
@@ -492,11 +552,11 @@ function mUI_CreateConfigItemBoolean(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", checkbox, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
+	item:SetHeight(24)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	
-	return current_y + 17
+	return current_y + 25
 end
 
 function mUI_CreateConfigItemStrata(var, parent, current_y, module)
@@ -516,7 +576,7 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 	local last_sel_btn = nil
 	for i, strata in ipairs(STRATA_TABLE)
 	do
-		local btn  = mUI_CreateDefaultButton(parent, nil, strata, 65, 16, 10)
+		local btn  = mUI_CreateDefaultButton(parent, nil, strata, 65, 24, 10)
 		btn:ClearAllPoints()
 		btn:SetWidth(btn:GetTextWidth() + 20)
 		if(var.value == strata)
@@ -555,11 +615,11 @@ function mUI_CreateConfigItemStrata(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
+	item:SetHeight(24)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	
-	return current_y + 17
+	return current_y + 25
 end
 
 function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
@@ -579,7 +639,7 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 	local last_sel_btn = nil
 	for i, dyncolor in ipairs(DYNAMIC_COLOR_TABLE)
 	do
-		local btn  = mUI_CreateDefaultButton(parent, nil, dyncolor, 53, 16, 10)
+		local btn  = mUI_CreateDefaultButton(parent, nil, dyncolor, 53, 24, 10)
 		btn:ClearAllPoints()
 		btn:SetWidth(btn:GetTextWidth() + 20)
 		if(var.value == dyncolor)
@@ -617,69 +677,11 @@ function mUI_CreateConfigItemDynamicColor(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
+	item:SetHeight(24)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 	
-	return current_y + 17
-end
-
-function mUI_CreateConfigItemFontStyle(var, parent, current_y, module)
-	local item_backdrop = { 
-		bgFile = "Interface\\AddOns\\minimalUI\\img\\BackdropSolid.tga", 
-		edgeFile = "", 
-		tile = false, tileSize = 0, edgeSize = 16, 
-		insets = { left = 0, right = 0, top = 0, bottom = 0 }
-	}
-
-	local highlightcolor = { r=0.78, g=0.29, b=0.00, a=1 }
-	local last_btn = parent
-	local FONTSTYLE_TABLE = { "NONE", "OUTLINE", "THICKOUTLINE" }
-	local last_sel_btn = nil
-	for i, fontstyle in ipairs(FONTSTYLE_TABLE)
-	do
-		local btn  = mUI_CreateDefaultButton(parent, nil, fontstyle, 73, 16, 10)
-		btn:ClearAllPoints()
-		btn:SetWidth(btn:GetTextWidth() + 20)
-		
-		if(var.value == fontstyle)
-		then
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
-			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
-			last_sel_btn = btn
-		else
-			btn:SetBackdropColor(.12,.12,.12,1)
-			btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
-		end
-		if(last_btn == parent) then
-			btn:SetPoint("TOPRIGHT", last_btn, "TOPRIGHT", -17, -1 * current_y)
-		else
-			btn:SetPoint("TOPRIGHT", last_btn, "TOPLEFT", -1, 0)
-		end
-		btn:SetScript("OnClick", function ()
-			if(last_sel_btn ~= nil)
-			then
-				last_sel_btn:SetBackdropColor(.12,.12,.12,1)
-				last_sel_btn:SetTextColor(1.0, 1.0, 1.0, 1.0)
-			end
-			var.value = fontstyle
-			if(module) then module:VariableChanged(var) end
-
-			btn:SetBackdropColor(1.0,1.0,1.0,1)
-			btn:SetTextColor(0.0, 0.0, 0.0, 1.0)
-			last_sel_btn = this
-		end)
-		last_btn = btn
-	end
-	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
-	item:ClearAllPoints()
-	item:SetBackdropColor(.13,.13,.13,1)
-	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
-	item:SetPoint("BOTTOMRIGHT", last_btn, "BOTTOMLEFT", -1, 0)
-	item:SetHeight(16)
-	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
-	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
-	return current_y + 17
+	return current_y + 25
 end
 
 function mUI_CreateConfigItemColor(var, parent, current_y, module)
@@ -699,13 +701,13 @@ function mUI_CreateConfigItemColor(var, parent, current_y, module)
 	local color_picker       = mUI_CreateColorPicker(parent, callback, 100, 0, var.value)
 	color_picker:ClearAllPoints()
 	color_picker:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -17, current_y *-1)
-	color_picker:SetHeight(16)
+	color_picker:SetHeight(24)
 
-	local hex_editbox       = mUI_CreateDefaultEditbox(parent, mUI_HexFromColorTable(var.value), 80, 0, "TOP", "LEFT")
+	local hex_editbox       = mUI_CreateDefaultEditbox(parent, mUI_HexFromColorTable(var.value), 98, 0, "TOP", "LEFT")
 	hex_editbox:ClearAllPoints()
 	hex_editbox:SetBackdropColor(.12,.12,.12,1)
 	hex_editbox:SetPoint("TOPRIGHT", color_picker, "TOPLEFT", -1, 0)
-	hex_editbox:SetHeight(16)
+	hex_editbox:SetHeight(24)
 	hex_editbox:SetScript("OnEnterPressed", function()		
 		local a,r,g,b = mUI_HexToARGBFloats(this:GetText())
 		var.value = {r=r, g=g, b=b, a=a}
@@ -721,9 +723,84 @@ function mUI_CreateConfigItemColor(var, parent, current_y, module)
 	item:SetBackdropColor(.13,.13,.13,1)
 	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
 	item:SetPoint("BOTTOMRIGHT", hex_editbox, "BOTTOMLEFT", -1, 0)
+	item:SetHeight(24)
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " ") .. " [#AARRGGBB]", "CENTER", "LEFT")
+	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+
+	return current_y + 25
+end
+
+function mUI_CreateConfigItemComboFont(var, parent, current_y, module)
+	local function myCallback(self, index, value)
+		local fontfull = value
+		if(fontfull) then
+			var.value = value
+			if(module) then module:VariableChanged(var) end
+
+			self:SetFont(fontfull, 12)
+			local _,_,fontfile = strfind(fontfull, "([^\\]+)[.]") 
+			if(fontfile) then
+				self:SetText(fontfile)
+			end
+		end
+	end
+
+	local combo = mUI_ComboBox(parent, "FONT", myCallback)
+	combo:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -16, -1 * current_y)
+	combo:SetBackdropColor(.1,.1,.1,1)
+	combo:SetWidth(200)
+	combo:SetHeight(24)
+	combo:SetValueHeight(14)
+
+	combo:SetFont(var.value, 12)
+	local _,_,fontfile = strfind(var.value, "([^\\]+)[.]") 
+	if(fontfile) then combo:SetText(fontfile) end
+
+	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
+	item:ClearAllPoints()
+	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
+	item:SetPoint("BOTTOMRIGHT", combo, "BOTTOMLEFT", -1, 0)
 	item:SetHeight(16)
 	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
 	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
 
-	return current_y + 17
+	return current_y + 25
+end
+
+
+function mUI_CreateConfigItemComboTexture(var, parent, current_y, module)
+	local function myCallback(self, index, value)
+		local texture_full = value
+		if(texture_full) then
+			var.value = value
+			if(module) then module:VariableChanged(var) end
+			self:SetNormalTexture(var.value)
+			local _,_,texture = strfind(texture_full, "([^\\]+)[.]") 
+			if(texture) then
+				self:SetText(texture)
+			end
+		end
+	end
+
+	local combo = mUI_ComboBox(parent, "TEXTURE", myCallback)
+	combo:SetPoint("TOPRIGHT", parent, "TOPRIGHT", -16, -1 * current_y)
+	combo:SetBackdropColor(.1,.1,.1,1)
+	combo:SetWidth(200)
+	combo:SetHeight(24)
+	combo:SetValueHeight(24)
+	combo:SetNormalTexture(var.value)
+	local _,_,texture = strfind(var.value, "([^\\]+)[.]") 
+	if(texture) then combo:SetText(texture) end
+
+	local item = mUI_CreateDefaultFrame(parent, nil, 0, 0, "DIALOG", item_backdrop)
+	item:ClearAllPoints()
+	item:SetBackdropColor(.13,.13,.13,1)
+	item:SetPoint("TOPLEFT", parent, "TOPLEFT", 5, current_y * -1)
+	item:SetPoint("BOTTOMRIGHT", combo, "BOTTOMLEFT", -1, 0)
+	item:SetHeight(16)
+	item.text = mUI_FontString(item, nil, 14, nil, gsub(var.name,"_", " "), "CENTER", "LEFT")
+	item.text:SetPoint("TOPLEFT", item, "TOPLEFT", 8, -1)
+
+	return current_y + 25
 end
