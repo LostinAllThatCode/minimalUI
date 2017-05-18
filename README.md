@@ -3,7 +3,15 @@
 ---
 
 **_Special thanks to the creator of pfUI (wow vanilla interface). Your codebase helped a lot!_**
+- https://github.com/shagu/pfUI
+---
 
+# How to install:
+- Click on the green "Clone or Download"-Button in the top right corner
+- Click on download as ZIP
+- Unpack the **_minimalUI-master_** to your **..\WoW\Interface\Addons** folder
+- **IMPORTANT Make sure you rename the folder _minimalUI-master_ to _minimalUI_**
+- Start WoW
 
 ---
 **IMPORTANT**
@@ -19,5 +27,4 @@ YOUR_WOW_DIR\WTF\Account\YOUR_ACCOUNTNAME\YOUR_SERVER\YOUR_CHARACTER\SavedVariab
 YOUR_WOW_DIR\WTF\Account\YOUR_ACCOUNTNAME\YOUR_SERVER\YOUR_CHARACTER\SavedVariables\minimalUI.lua.bak
 
 
-
-# Thanks for testing this interface. Feel free to add enhancements or bugs to the ISSUES list on top of this site!
+**Thanks for testing this interface. Feel free to add enhancements or bugs to the ISSUES list on top of this site!**
